@@ -65,7 +65,7 @@ def process_news_with_ai(news_item):
         )
         
         response = client.models.generate_content(
-            model='gemini-1.5-flash',  
+            model='gemini-1.5-flash-latest',  
             contents=f"Headline: {news_item['title']}\n\n{system_prompt}"
         )
         
@@ -123,7 +123,7 @@ async def upload_document(file: UploadFile = File(...)):
         )
         
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemini-1.5-flash-latest',
             contents=f"Document Content:\n{file_text}\n\n{document_prompt}"
         )
         
