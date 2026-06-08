@@ -39,12 +39,13 @@ def process_news_with_ai(news_item):
     api_key_env = os.environ.get("GEMINI_API_KEY")
     
     fallback_data = {
-        "title": news_item['title'],
-        "what_happened": f"Market update regarding: {news_item['title']}. Live tracking active.",
-        "why_it_happened": "Triggered by global enterprise infrastructure shift and tech adoption trends.",
-        "market_impact": "Positive impact on cloud deployment pipelines and local tech service sectors.",
-        "sentiment": "positive"
-    }
+            "title": news_item['title'],
+            "sector": "Infrastructure",  # Adding default sector tag for safety
+            "what_happened": f"Market update regarding: {news_item['title']}. Live tracking active.",
+            "why_it_happened": "Triggered by global enterprise infrastructure shift and tech adoption trends.",
+            "market_impact": "Positive impact on cloud deployment pipelines and local tech service sectors.",
+            "sentiment": "positive"
+        }
 
     if not api_key_env:
         return fallback_data
@@ -54,8 +55,9 @@ def process_news_with_ai(news_item):
         
         system_prompt = (
             "You are an elite Tech & Market Analyst. Analyze the given news headline. "
-            "Provide a JSON response with exactly four keys: "
+            "Provide a JSON response with exactly five keys: "
             "'title' (the original headline), "
+            "'sector' (strictly 1 to 3 words max naming the exact specific industry sector, e.g., 'Solar Energy', 'Semiconductors', 'Cloud & AI', 'EV Infrastructure', 'Telecom', 'Cybersecurity', 'Drone Tech'), "
             "'what_happened' (2 precise sentences of the core fact), "
             "'why_it_happened' (the technical trigger or cause), "
             "'market_impact' (the direct effect on IT pipelines or stocks), and "
