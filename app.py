@@ -22,7 +22,7 @@ genai.configure(api_key=GEMINI_KEY)
 
 # Using standard model identifier configuration
 try:
-    model = genai.GenerativeModel('gemini-pro')
+    model = genai.GenerativeModel('gemini-1.5-pro')
 except Exception:
     model = genai.GenerativeModel('gemini-1.5-flash')
 
