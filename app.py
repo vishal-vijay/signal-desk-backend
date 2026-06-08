@@ -21,16 +21,14 @@ app.add_middleware(
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 genai.configure(api_key=GEMINI_KEY)
 
-# Stable Gemini model identifier
+# Use stable flash model identifier
 model = genai.GenerativeModel('gemini-2.5-flash')
 
 def get_live_news():
     """Live RSS feed se top tech/market news entries fetch karta hai."""
-    # Google News global industry & infrastructure technical telemetry feed URL
     FEED_URL = "https://news.google.com/rss/search?q=technology+infrastructure+enterprise+market&hl=en-US&gl=US&ceid=US:en"
     try:
         feed = feedparser.parse(FEED_URL)
-        # Top 12 entries extract kar rahe hain dynamic sectors banane ke liye
         return feed.entries[:12]
     except Exception as e:
         print(f"Feed fetch error: {e}")
@@ -38,23 +36,26 @@ def get_live_news():
 
 @app.get("/api/signals")
 async def get_signals():
-    """Live news headlines ko process karke dynamic AI sectors and signals generate karta hai."""
+    """Live news headlines ko process karke dual-language signals generate karta hai."""
     raw_news = get_live_news()
     processed_signals = []
     
     system_prompt = (
-        "You are an elite Tech & Market Analyst. Analyze the given news headline. "
-        "Provide a JSON response with exactly five keys:\n"
-        "'title' (the original headline),\n"
-        "'category' (strictly 1 to 3 words max naming the exact industry sector, e.g., 'Solar Energy', 'Semiconductors', 'Cloud & AI', 'Infrastructure', 'Telecom', 'Cybersecurity', 'Drone Tech'),\n"
-        "'what_happened' (2 precise sentences of the core fact),\n"
-        "'why_it_happened' (the technical trigger or cause),\n"
-        "'market_impact' (the direct effect on IT pipelines or stocks),\n"
-        "'sentiment' (strictly either 'positive' or 'negative').\n"
-        "Do not use markdown wrappers or ```json blocks. Return pure text JSON only."
+        "You are a Senior Tech & Indian Market Infrastructure Analyst. Analyze the given news headline. "
+        "Avoid vague corporate fillers like 'technical asset realignment'. Be concrete, factual, and direct. "
+        "Provide a raw JSON response with exactly these nine keys:\n"
+        "- 'title': The original headline string.\n"
+        "- 'category': Strictly 1 to 3 words naming the industry sector (e.g., Solar Energy, Semiconductors, Cloud & AI, Infrastructure, Telecom, Cybersecurity).\n"
+        "- 'what_en': 1-2 precise sentences explaining exactly what happened in professional English.\n"
+        "- 'what_hi': 1-2 precise sentences explaining exactly what happened in clear, easy Hinglish (peer conversation style).\n"
+        "- 'why_en': 1 clear sentence showing the technical or market trigger in English.\n"
+        "- 'why_hi': 1 clear sentence showing the technical or market trigger in easy Hinglish.\n"
+        "- 'impact_en': 1 clear sentence detailing downstream impact on cloud pipelines or specific stock/industry complex in English.\n"
+        "- 'impact_hi': 1 clear sentence detailing downstream impact on cloud pipelines or specific stock/industry complex in easy Hinglish.\n"
+        "- 'sentiment': Strictly either 'positive' or 'negative'.\n"
+        "Do not include any markdown fences or write ```json blocks. Return pure text JSON only."
     )
     
-    # Agar internet down ho ya feed blank ho, toh safe global fallback layout array bhejenge
     if not raw_news:
         return [{
             "id": "s_fallback",
@@ -62,9 +63,12 @@ async def get_signals():
             "sentiment": "positive",
             "category": "Cloud & AI",
             "time": "Just now",
-            "what_happened": "Live market stream synchronization is active under backup mode.",
-            "why_it_happened": "Triggered by system heartbeat protocol validation rules.",
-            "market_impact": "Keeps local dashboard analytical modules operational."
+            "what_en": "Live market stream synchronization is active under backup mode.",
+            "what_hi": "Live market stream background me sahi se chal rha h.",
+            "why_en": "Triggered by system heartbeat protocol validation rules.",
+            "why_hi": "Server active check system validation ki wajah se trigger hua.",
+            "impact_en": "Keeps local dashboard analytical modules operational.",
+            "impact_hi": "Isse local laptop par dashboard bina kisi error ke chalta rahega."
         }]
 
     for idx, item in enumerate(raw_news):
@@ -75,29 +79,33 @@ async def get_signals():
             clean_text = re.sub(r"```json|```", "", response.text).strip()
             signal_data = json.loads(clean_text)
             
-            # Map parameters perfectly according to frontend routing requirements
             processed_signals.append({
                 "id": f"live-sig-{idx}",
                 "title": signal_data.get("title", item.title),
                 "sentiment": signal_data.get("sentiment", "neutral").lower(),
-                "category": signal_data.get("category", "Infrastructure"), # Dynamic Sector name
+                "category": signal_data.get("category", "Infrastructure"),
                 "time": "Just now",
-                "what_happened": signal_data.get("what_happened", ""),
-                "why_it_happened": signal_data.get("why_it_happened", ""),
-                "market_impact": signal_data.get("market_impact", "")
+                "what_en": signal_data.get("what_en", ""),
+                "what_hi": signal_data.get("what_hi", ""),
+                "why_en": signal_data.get("why_en", ""),
+                "why_hi": signal_data.get("why_hi", ""),
+                "impact_en": signal_data.get("impact_en", ""),
+                "impact_hi": signal_data.get("impact_hi", "")
             })
         except Exception as e:
             print(f"Error processing item {idx}: {e}")
-            # Individual loop element backup fallback to avoid entire API failure
             processed_signals.append({
                 "id": f"fallback-{idx}",
                 "title": item.title,
                 "sentiment": "positive",
                 "category": "Infrastructure",
                 "time": "Just now",
-                "what_happened": "Real-time infrastructure pulse tracked successfully.",
-                "why_it_happened": "Global technical asset realignment.",
-                "market_impact": "Bullish data pipeline read-through."
+                "what_en": "Technical updates are processing inside cloud clusters.",
+                "what_hi": "Is market headline ka detailed AI metrics parsing backend freeze ki wajah se bypass hua h.",
+                "why_en": "Driven by global localized technical scaling metrics.",
+                "why_hi": "Enterprise cloud services updates background infrastructure me run ho rhe hain.",
+                "impact_en": "Bullish data pipeline read-through for tech architecture complex.",
+                "impact_hi": "Data consulting aur standard enterprise engineering projects ke liye sentiment neutral-positive h."
             })
             
     return processed_signals
