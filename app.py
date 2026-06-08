@@ -31,30 +31,20 @@ app.add_middleware(
 DB_PATH = "/var/data/subscriptions.db" if os.path.exists("/var/data") else "subscriptions.db"
 
 def init_db():
-    """Initializes the zero-cost SQLite subscription infrastructure."""
+    """Initializes the zero-cost SQLite subscription infrastructure with correct syntax."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
+    # Strictly using single correct SQLite syntax table. No duplicate crash loops.
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS subs (
-            id INTEGER PRIMARY KEY AUTO_INCREMENT,
+        CREATE TABLE IF NOT EXISTS subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             email TEXT NOT NULL UNIQUE,
             sector TEXT NOT NULL
         )
     ''')
-    # Backup trigger if sqlite version auto-increments differently
-    try:
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS subscriptions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT NOT NULL UNIQUE,
-                sector TEXT NOT NULL
-            )
-        ''')
-    except Exception:
-        pass
     conn.commit()
     conn.close()
-
 # Initialize data tables on startup
 init_db()
 
