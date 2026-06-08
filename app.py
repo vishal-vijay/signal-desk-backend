@@ -230,7 +230,8 @@ async def register_subscriber(req: SubscriptionRequest):
     except Exception as e:
         return {"status": "Database Error", "details": str(e)}
 
-@app.post("/api/trigger-email-test")
+# Is line ko POST se GET me badal do boss
+@app.get("/api/trigger-email-test")
 async def trigger_email_test():
     """Manual manual router execution loop verification workflow."""
     email_thread = threading.Thread(target=dispatch_dynamic_newsletters)
