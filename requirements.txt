@@ -1,4 +1,5 @@
 fastapi
 uvicorn
 feedparser
-google-genai
+google-generativeai
+python-multipart
