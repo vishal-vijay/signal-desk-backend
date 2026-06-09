@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 # 🌐 PASTE YOUR GOOGLE WEB APP URL HERE BOSS
-GSHEET_SCRIPT_URL = "YAHAN_APNA_GOOGLE_SCRIPT_URL_PASTE_KARO"
+GSHEET_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxahBwGkKTDDpoyg-R4XZ_ho7Tj2xee_E26EhtQCrCGBIifjrbJgfxStqsP4ujbXft3/exec"
 WEBSITE_URL = "https://signal-desk.onrender.com"
 
 class SubscriptionRequest(BaseModel):
