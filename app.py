@@ -109,8 +109,16 @@ def generate_signals_dataset():
     return processed
 
 def dispatch_dynamic_newsletters():
-    """Database scan block that formats and dispatches emails via secure SSL Port 465."""
-    print("🚀 Running newsletter core routine engine...")
+    """Bypasses strict cloud SMTP firewalls by utilizing secure HTTP REST API endpoints."""
+    print("🚀 Running newsletter core routine engine via HTTP API...")
+    
+    # 🔑 Load secure Web API Token Key
+    SENDGRID_KEY = os.environ.get("SENDGRID_API_KEY", "")
+    
+    if not SENDGRID_KEY:
+        print("❌ Error: SENDGRID_API_KEY environment variable missing!")
+        return
+
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -149,7 +157,6 @@ def dispatch_dynamic_newsletters():
                         <h4 style="margin: 0; color: #ffffff; font-size: 14px;">{item['title']}</h4>
                         <p style="font-size: 13px; color: #cbd5e1; margin: 6px 0;"><b>[English]:</b> {item['what_en']}</p>
                         <p style="font-size: 13px; color: #34d399; margin: 4px 0;"><b>[Hinglish Overview]:</b> {item['what_hi']}</p>
-                        <p style="font-size: 12px; color: #94a3b8; margin: 4px 0;"><b>Impact Core:</b> {item['impact_en']}</p>
                     </div>
                 """
                 
@@ -159,21 +166,30 @@ def dispatch_dynamic_newsletters():
             </html>
             """
 
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = f"📊 Signal Desk: Custom {target_sector} Intelligence Stream"
-            msg['From'] = SENDER_EMAIL
-            msg['To'] = email_addr
-            msg.attach(MIMEText(html_content, 'html'))
-
-            # 🔐 BULLETPROOF PRODUCTION SSL PIPELINE ON PORT 465
-            server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-            server.login(SENDER_EMAIL, SMTP_APP_PASSWORD)
-            server.sendmail(SENDER_EMAIL, email_addr, msg.as_string())
-            server.quit()
-            print(f"✅ Email safely delivered to target address: {email_addr}")
+            # 🛠️ FIREWALL BYPASS: Direct HTTP JSON Broadcast Payload
+            payload = {
+                "personalizations": [{"to": [{"email": email_addr}]}],
+                "from": {"email": SENDER_EMAIL, "name": "Signal Desk Alerts"},
+                "subject": f"📊 Signal Desk: Custom {target_sector} Intelligence Stream",
+                "content": [{"type": "text/html", "value": html_content}]
+            }
             
-        except Exception as smtp_err:
-            print(f"❌ Error sending email to {email_addr}: {smtp_err}")
+            headers = {
+                "Authorization": f"Bearer {SENDGRID_KEY}",
+                "Content-Type": "application/json"
+            }
+            
+            # Pure HTTP call on standard port 443 HTTPS (Can never be blocked)
+            import requests
+            response = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers)
+            
+            if response.status_code in [200, 201, 202]:
+                print(f"✅ Email safely delivered via HTTP API tunnel to: {email_addr}")
+            else:
+                print(f"❌ SendGrid API Error {response.status_code}: {response.text}")
+            
+        except Exception as api_err:
+            print(f"❌ Critical HTTP delivery failure for {email_addr}: {api_err}")
 
 # ==========================================
 # 🛠️ GLOBAL FASTAPI ROUTING ENDPOINTS
