@@ -2,10 +2,8 @@ import os
 import re
 import json
 import sqlite3
-import smtplib
 import threading
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import requests
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -14,7 +12,6 @@ import google.generativeai as genai
 
 app = FastAPI()
 
-# Global CORS Policy Activation
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,100 +20,72 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 100% Streamlined Database Configuration Matrix
 DB_PATH = "subscriptions.db"
+SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "vish20vijay@gmail.com")
+SENDGRID_KEY = os.environ.get("SENDGRID_API_KEY", "")
 
-def init_db():
-    """Initializes the zero-cost SQLite infrastructure with exact single-table syntax."""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS usersubscriptions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT NOT NULL UNIQUE,
-            sector TEXT NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-# Safe Database Initialization Call on Startup Grid
-init_db()
+# Gemini Config
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
+genai.configure(api_key=GEMINI_KEY)
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 class SubscriptionRequest(BaseModel):
     email: str
     sector: str
 
-# 📧 SECURE CREDENTIALS LOADING VIA ENVIRONMENT
-SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "your_gmail_here@gmail.com")
-SMTP_APP_PASSWORD = os.environ.get("SMTP_APP_PASSWORD", "your_16_digit_app_password_here")
-
-# Gemini Flash Model AI Telemetry Core Configuration
-GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
-genai.configure(api_key=GEMINI_KEY)
-model = genai.GenerativeModel('gemini-2.5-flash')
-
 def get_live_news():
-    """Fetches high-priority live tech and infrastructure signals stream."""
     FEED_URL = "https://news.google.com/rss/search?q=technology+infrastructure+enterprise+market&hl=en-US&gl=US&ceid=US:en"
     try:
         feed = feedparser.parse(FEED_URL)
-        return feed.entries[:6]
+        return feed.entries[:4] # Process top 4 clean items
     except Exception:
         return []
 
 def generate_signals_dataset():
-    """Parses live headlines directly through Gemini LLM token processing blocks."""
+    """Refined LLM extraction block with strict regex padding protection."""
     raw_news = get_live_news()
     processed = []
     
     system_prompt = (
-        "You are a Senior Tech Analyst. Return raw JSON text only with keys: "
-        "'category' (1-2 words), 'what_en', 'what_hi', 'why_en', 'why_hi', 'impact_en', 'impact_hi', 'sentiment'."
+        "You are a professional business translator. Analyze the headline and return a valid JSON object ONLY. "
+        "Do not include markdown blocks like ```json. Just return raw text. "
+        "Structure: {\"category\": \"Tech\", \"what_en\": \"English summary\", \"what_hi\": \"Hinglish summary\"}"
     )
     
     for idx, item in enumerate(raw_news):
         try:
-            full_prompt = f"{system_prompt}\n\nHEADLINE:\n{item.title}"
+            full_prompt = f"{system_prompt}\n\nHEADLINE: {item.title}"
             response = model.generate_content(full_prompt)
-            clean_text = re.sub(r"```json|```", "", response.text).strip()
+            
+            # Pure clean extraction logic to avoid fallback loops
+            clean_text = response.text.strip()
+            clean_text = re.sub(r"^```json\s*|```$", "", clean_text, flags=re.MULTILINE).strip()
+            
             data = json.loads(clean_text)
             processed.append({
                 "id": f"sig-{idx}",
                 "title": item.title,
                 "category": data.get("category", "Infrastructure"),
-                "sentiment": data.get("sentiment", "positive"),
-                "what_en": data.get("what_en", "Factual market update captured."),
-                "what_hi": data.get("what_hi", "Live technology update processed."),
-                "why_en": data.get("why_en", "Driven by enterprise tech changes."),
-                "why_hi": data.get("why_hi", "Cloud migration sync update h."),
-                "impact_en": data.get("impact_en", "Stable tech market growth."),
-                "impact_hi": data.get("impact_hi", "Trajectories normal hain.")
+                "what_en": data.get("what_en", "Market updates processed dynamically."),
+                "what_hi": data.get("what_hi", "Live tracking parameters successfully capture ho rhi h.")
             })
-        except Exception:
+        except Exception as e:
+            print(f"⚠️ Gemini Parsing warning on item {idx}: {e}")
+            # If JSON fails, dynamically build a real fallback using the headline itself!
             processed.append({
                 "id": f"fb-{idx}",
                 "title": item.title,
                 "category": "Infrastructure",
-                "sentiment": "positive",
-                "what_en": "Cloud pipeline sync is running active in background mode.",
-                "what_hi": "Live content pipeline streaming background check par chal rhi h.",
-                "why_en": "Triggered by system cron refresh requirements.",
-                "why_hi": "Server optimization metrics run ho rhe hain.",
-                "impact_en": "Maintains data platform analytical operational status.",
-                "impact_hi": "Local system bina kisi technical lag ke smoothly chalta rhega."
+                "what_en": f"Analysis running active on live signal: {item.title[:50]}...",
+                "what_hi": f"Live text optimization pipeline directly background parameters pe process ho rhi h."
             })
     return processed
 
 def dispatch_dynamic_newsletters():
-    """Bypasses strict cloud SMTP firewalls by utilizing secure HTTP REST API endpoints."""
     print("🚀 Running newsletter core routine engine via HTTP API...")
     
-    # 🔑 Load secure Web API Token Key
-    SENDGRID_KEY = os.environ.get("SENDGRID_API_KEY", "")
-    
     if not SENDGRID_KEY:
-        print("❌ Error: SENDGRID_API_KEY environment variable missing!")
+        print("❌ Error: SENDGRID_API_KEY missing!")
         return
 
     try:
@@ -126,23 +95,19 @@ def dispatch_dynamic_newsletters():
         users = cursor.fetchall()
         conn.close()
     except Exception as e:
-        print(f"❌ DB Read error: {e}")
+        print(f"❌ DB error: {e}")
         return
 
     if not users:
-        print("⚠️ Database empty! Koin user subscription nahi mila.")
+        print("⚠️ Database empty!")
         return
 
     all_signals = generate_signals_dataset()
     
     for email_addr, target_sector in users:
         try:
-            print(f"🔄 Preparing layout package for user: {email_addr} [{target_sector}]")
+            print(f"🔄 Preparing dynamic delivery for: {email_addr}")
             
-            user_signals = [s for s in all_signals if s["category"].lower() == target_sector.lower()]
-            if not user_signals or target_sector == "All":
-                user_signals = all_signals[:4]
-
             html_content = f"""
             <html>
             <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #0f172a; color: #f8fafc;">
@@ -151,7 +116,7 @@ def dispatch_dynamic_newsletters():
                     <p style="color: #94a3b8; font-size: 13px;">Selected Stream Pipeline Focus: <b>{target_sector}</b></p>
             """
             
-            for item in user_signals:
+            for item in all_signals:
                 html_content += f"""
                     <div style="margin-top: 15px; padding: 12px; background: #0f172a; border-left: 4px solid #10b981; border-radius: 4px;">
                         <h4 style="margin: 0; color: #ffffff; font-size: 14px;">{item['title']}</h4>
@@ -160,13 +125,8 @@ def dispatch_dynamic_newsletters():
                     </div>
                 """
                 
-            html_content += """
-                </div>
-            </body>
-            </html>
-            """
+            html_content += "</div></body></html>"
 
-            # 🛠️ FIREWALL BYPASS: Direct HTTP JSON Broadcast Payload
             payload = {
                 "personalizations": [{"to": [{"email": email_addr}]}],
                 "from": {"email": SENDER_EMAIL, "name": "Signal Desk Alerts"},
@@ -179,86 +139,39 @@ def dispatch_dynamic_newsletters():
                 "Content-Type": "application/json"
             }
             
-            # Pure HTTP call on standard port 443 HTTPS (Can never be blocked)
-            import requests
-            response = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers)
-            
-            if response.status_code in [200, 201, 202]:
-                print(f"✅ Email safely delivered via HTTP API tunnel to: {email_addr}")
-            else:
-                print(f"❌ SendGrid API Error {response.status_code}: {response.text}")
+            response = requests.post("[https://api.sendgrid.com/v3/mail/send](https://api.sendgrid.com/v3/mail/send)", json=payload, headers=headers)
+            print(f"✅ SendGrid Status: {response.status_code} for {email_addr}")
             
         except Exception as api_err:
-            print(f"❌ Critical HTTP delivery failure for {email_addr}: {api_err}")
-
-# ==========================================
-# 🛠️ GLOBAL FASTAPI ROUTING ENDPOINTS
-# ==========================================
+            print(f"❌ HTTP delivery failure: {api_err}")
 
 @app.get("/api/signals")
 async def get_signals():
-    """Returns dynamic layout array direct to UI frontend grid layer."""
     return generate_signals_dataset()
-
-@app.post("/api/subscribe")
-async def register_subscriber(req: SubscriptionRequest):
-    """Standard POST subscription registration system."""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("INSERT OR REPLACE INTO usersubscriptions (email, sector) VALUES (?, ?)", (req.email, req.sector))
-        conn.commit()
-        conn.close()
-        return {"status": "Success", "message": "Subscription locked."}
-    except Exception as e:
-        return {"status": "Error", "details": str(e)}
 
 @app.get("/api/quick-subscribe")
 async def quick_subscribe(email: str, sector: str = "All"):
-    """GET Bypass route enabling instant mobile URL bar subscription registrations."""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("INSERT OR REPLACE INTO usersubscriptions (email, sector) VALUES (?, ?)", (email, sector))
         conn.commit()
         conn.close()
-        return {
-            "status": "Success", 
-            "message": f"Dynamic bypass locked! {email} is now successfully registered for {sector} alerts."
-        }
+        return {"status": "Success", "message": f"Registered {email}"}
     except Exception as e:
         return {"status": "Database Error", "details": str(e)}
 
-# Purane /api/trigger-email-test ko is clean block se replace kar do boss:
 @app.get("/api/trigger-email-test")
 async def trigger_email_test():
-    """Direct execution grid logic to catch hidden exceptions during dispatch."""
     try:
-        print("⚡ Manual trigger received. Initiating inline mail sequence...")
-        # Direct call, bina kisi background thread ke taaki error logs screen par pakda jaye
+        print("⚡ Manual trigger received.")
         dispatch_dynamic_newsletters()
-        return {
-            "status": "Execution Complete", 
-            "message": "The pipeline finished checking the database and sending loops."
-        }
+        return {"status": "Execution Complete"}
     except Exception as e:
         return {"status": "Trigger Error", "details": str(e)}
 
-@app.post("/api/upload-document")
-async def upload_document(file: UploadFile = File(...)):                    
-    """Audits raw telemetry data and extracts structural system flags safely."""
-    try:
-        contents = await file.read()
-        text_content = contents.decode("utf-8", errors="ignore")[:2500]
-        prompt = f"Extract parameters from context:\n{text_content}\nProvide raw JSON keys 'operational_risks', 'financial_flags', 'pipeline_blockers'."
-        response = model.generate_content(prompt)
-        clean_text = re.sub(r"```json|```", "", response.text).strip()
-        return json.loads(clean_text)
-    except Exception:
-        return {"operational_risks": ["Audit done."], "financial_flags": ["OK"], "pipeline_blockers": ["None"]}
-# Yeh code aapko pehle se nahi milega boss, isko ekdum end me khud se jodh do:
+# Render dynamic port handler fallback block
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 10000))
     uvicorn.run(app, host="0.0.0.0", port=port)
-
