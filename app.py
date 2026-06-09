@@ -214,7 +214,8 @@ def dispatch_dynamic_newsletters():
             }
             
             # 🛠️ CRITICAL STABLE ROUTING TUNNEL LINE: Completely safe string injection logic
-            response = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers)            print(f"✅ SendGrid Status: {response.status_code} for {email_addr}")
+            response = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers)            
+            print(f"✅ SendGrid Status: {response.status_code} for {email_addr}")
                 
         except Exception as api_err:
             print(f"❌ Critical delivery pipeline malfunction: {api_err}")
