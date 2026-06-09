@@ -213,12 +213,20 @@ async def quick_subscribe(email: str, sector: str = "All"):
     except Exception as e:
         return {"status": "Database Error", "details": str(e)}
 
+# Purane /api/trigger-email-test ko is clean block se replace kar do boss:
 @app.get("/api/trigger-email-test")
 async def trigger_email_test():
-    """GET Trigger router allowing easy continuous deployment live check workflow diagnostics."""
-    email_thread = threading.Thread(target=dispatch_dynamic_newsletters)
-    email_thread.start()
-    return {"status": "Active", "message": "Subscription loop fired in background worker."}
+    """Direct execution grid logic to catch hidden exceptions during dispatch."""
+    try:
+        print("⚡ Manual trigger received. Initiating inline mail sequence...")
+        # Direct call, bina kisi background thread ke taaki error logs screen par pakda jaye
+        dispatch_dynamic_newsletters()
+        return {
+            "status": "Execution Complete", 
+            "message": "The pipeline finished checking the database and sending loops."
+        }
+    except Exception as e:
+        return {"status": "Trigger Error", "details": str(e)}
 
 @app.post("/api/upload-document")
 async def upload_document(file: UploadFile = File(...)):                    
