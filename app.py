@@ -232,3 +232,9 @@ async def upload_document(file: UploadFile = File(...)):
         return json.loads(clean_text)
     except Exception:
         return {"operational_risks": ["Audit done."], "financial_flags": ["OK"], "pipeline_blockers": ["None"]}
+# Yeh code aapko pehle se nahi milega boss, isko ekdum end me khud se jodh do:
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
