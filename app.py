@@ -109,7 +109,7 @@ def generate_signals_dataset():
     return processed
 
 def dispatch_dynamic_newsletters():
-    """Database scan block that formats and dispatches emails via secure Port 587."""
+    """Database scan block that formats and dispatches emails via secure SSL Port 465."""
     print("🚀 Running newsletter core routine engine...")
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -131,7 +131,6 @@ def dispatch_dynamic_newsletters():
         try:
             print(f"🔄 Preparing layout package for user: {email_addr} [{target_sector}]")
             
-            # Dynamic filtering map allocation based on criteria matching keys
             user_signals = [s for s in all_signals if s["category"].lower() == target_sector.lower()]
             if not user_signals or target_sector == "All":
                 user_signals = all_signals[:4]
@@ -166,16 +165,15 @@ def dispatch_dynamic_newsletters():
             msg['To'] = email_addr
             msg.attach(MIMEText(html_content, 'html'))
 
-# Purani SMTP 587 waali lines ko hata kar dispatch_dynamic_newsletters me ye dhasu logic dalo:
-            try:
-                # 🔐 Standard SSL Encryption connection directly on Port 465
-                server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-                server.login(SENDER_EMAIL, SMTP_APP_PASSWORD)
-                server.sendmail(SENDER_EMAIL, email_addr, msg.as_string())
-                server.quit()
-                print(f"✅ Email safely delivered to target address: {email_addr}")
-            except Exception as smtp_err:
-                print(f"❌ Error sending email to {email_addr}: {smtp_err}")
+            # 🔐 BULLETPROOF PRODUCTION SSL PIPELINE ON PORT 465
+            server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+            server.login(SENDER_EMAIL, SMTP_APP_PASSWORD)
+            server.sendmail(SENDER_EMAIL, email_addr, msg.as_string())
+            server.quit()
+            print(f"✅ Email safely delivered to target address: {email_addr}")
+            
+        except Exception as smtp_err:
+            print(f"❌ Error sending email to {email_addr}: {smtp_err}")
 
 # ==========================================
 # 🛠️ GLOBAL FASTAPI ROUTING ENDPOINTS
