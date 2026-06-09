@@ -166,16 +166,16 @@ def dispatch_dynamic_newsletters():
             msg['To'] = email_addr
             msg.attach(MIMEText(html_content, 'html'))
 
-            # BULLETPROOF SMTP CONNECTION SETTINGS ON PORT 587
-            server = smtplib.SMTP('smtp.gmail.com', 587)
-            server.starttls()
-            server.login(SENDER_EMAIL, SMTP_APP_PASSWORD)
-            server.sendmail(SENDER_EMAIL, email_addr, msg.as_string())
-            server.quit()
-            print(f"✅ Email safely delivered to target address: {email_addr}")
-            
-        except Exception as smtp_err:
-            print(f"❌ Error sending email to {email_addr}: {smtp_err}")
+# Purani SMTP 587 waali lines ko hata kar dispatch_dynamic_newsletters me ye dhasu logic dalo:
+            try:
+                # 🔐 Standard SSL Encryption connection directly on Port 465
+                server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+                server.login(SENDER_EMAIL, SMTP_APP_PASSWORD)
+                server.sendmail(SENDER_EMAIL, email_addr, msg.as_string())
+                server.quit()
+                print(f"✅ Email safely delivered to target address: {email_addr}")
+            except Exception as smtp_err:
+                print(f"❌ Error sending email to {email_addr}: {smtp_err}")
 
 # ==========================================
 # 🛠️ GLOBAL FASTAPI ROUTING ENDPOINTS
