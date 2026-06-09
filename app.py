@@ -14,6 +14,7 @@ import google.generativeai as genai
 
 app = FastAPI()
 
+# Global CORS Policy Activation
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,11 +23,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 100% Streamlined Clean Database Path
+# 100% Streamlined Database Configuration Matrix
 DB_PATH = "subscriptions.db"
 
 def init_db():
-    """Sirf ek single transparent table banayega bina kisi confusion ke."""
+    """Initializes the zero-cost SQLite infrastructure with exact single-table syntax."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
@@ -39,21 +40,24 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Safe Database Initialization Call on Startup Grid
 init_db()
 
 class SubscriptionRequest(BaseModel):
     email: str
     sector: str
 
-# 📧 SMTP LIVE VARIABLES — INHE DIRECTLY CHECKS ME LOCK KAREIN
+# 📧 SECURE CREDENTIALS LOADING VIA ENVIRONMENT
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "your_gmail_here@gmail.com")
 SMTP_APP_PASSWORD = os.environ.get("SMTP_APP_PASSWORD", "your_16_digit_app_password_here")
 
+# Gemini Flash Model AI Telemetry Core Configuration
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY", "")
 genai.configure(api_key=GEMINI_KEY)
 model = genai.GenerativeModel('gemini-2.5-flash')
 
 def get_live_news():
+    """Fetches high-priority live tech and infrastructure signals stream."""
     FEED_URL = "https://news.google.com/rss/search?q=technology+infrastructure+enterprise+market&hl=en-US&gl=US&ceid=US:en"
     try:
         feed = feedparser.parse(FEED_URL)
@@ -62,6 +66,7 @@ def get_live_news():
         return []
 
 def generate_signals_dataset():
+    """Parses live headlines directly through Gemini LLM token processing blocks."""
     raw_news = get_live_news()
     processed = []
     
@@ -104,7 +109,7 @@ def generate_signals_dataset():
     return processed
 
 def dispatch_dynamic_newsletters():
-    """Database se unique email padh kar dynamic message bhejta h."""
+    """Database scan block that formats and dispatches emails via secure Port 587."""
     print("🚀 Running newsletter core routine engine...")
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -126,7 +131,7 @@ def dispatch_dynamic_newsletters():
         try:
             print(f"🔄 Preparing layout package for user: {email_addr} [{target_sector}]")
             
-            # Bulletproof Fallback: Agar kisi sector me specific data na ho, toh top items bhej do
+            # Dynamic filtering map allocation based on criteria matching keys
             user_signals = [s for s in all_signals if s["category"].lower() == target_sector.lower()]
             if not user_signals or target_sector == "All":
                 user_signals = all_signals[:4]
@@ -161,6 +166,7 @@ def dispatch_dynamic_newsletters():
             msg['To'] = email_addr
             msg.attach(MIMEText(html_content, 'html'))
 
+            # BULLETPROOF SMTP CONNECTION SETTINGS ON PORT 587
             server = smtplib.SMTP('smtp.gmail.com', 587)
             server.starttls()
             server.login(SENDER_EMAIL, SMTP_APP_PASSWORD)
@@ -171,12 +177,18 @@ def dispatch_dynamic_newsletters():
         except Exception as smtp_err:
             print(f"❌ Error sending email to {email_addr}: {smtp_err}")
 
+# ==========================================
+# 🛠️ GLOBAL FASTAPI ROUTING ENDPOINTS
+# ==========================================
+
 @app.get("/api/signals")
 async def get_signals():
+    """Returns dynamic layout array direct to UI frontend grid layer."""
     return generate_signals_dataset()
 
 @app.post("/api/subscribe")
 async def register_subscriber(req: SubscriptionRequest):
+    """Standard POST subscription registration system."""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
@@ -187,15 +199,32 @@ async def register_subscriber(req: SubscriptionRequest):
     except Exception as e:
         return {"status": "Error", "details": str(e)}
 
+@app.get("/api/quick-subscribe")
+async def quick_subscribe(email: str, sector: str = "All"):
+    """GET Bypass route enabling instant mobile URL bar subscription registrations."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("INSERT OR REPLACE INTO usersubscriptions (email, sector) VALUES (?, ?)", (email, sector))
+        conn.commit()
+        conn.close()
+        return {
+            "status": "Success", 
+            "message": f"Dynamic bypass locked! {email} is now successfully registered for {sector} alerts."
+        }
+    except Exception as e:
+        return {"status": "Database Error", "details": str(e)}
+
 @app.get("/api/trigger-email-test")
 async def trigger_email_test():
-    """Yeh GET endpoint h jo browser se direct target hit hoga."""
+    """GET Trigger router allowing easy continuous deployment live check workflow diagnostics."""
     email_thread = threading.Thread(target=dispatch_dynamic_newsletters)
     email_thread.start()
     return {"status": "Active", "message": "Subscription loop fired in background worker."}
 
 @app.post("/api/upload-document")
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(file: UploadFile = File(...)):                    
+    """Audits raw telemetry data and extracts structural system flags safely."""
     try:
         contents = await file.read()
         text_content = contents.decode("utf-8", errors="ignore")[:2500]
