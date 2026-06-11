@@ -67,14 +67,18 @@ def generate_signals_dataset():
             clean_text = response.text.strip()
             clean_text = re.sub(r"^```json\s*|```$", "", clean_text, flags=re.MULTILINE).strip()
             data = json.loads(clean_text)
+            
+            # Frontend matched dynamic object payload mapping
             processed.append({
                 "id": f"sig-{idx}",
                 "title": item.title,
                 "category": data.get("category", "Infrastructure"),
                 "what_en": data.get("what_en", "Dynamically validated structural update available."),
                 "what_hi": data.get("what_hi", "Live industry system metrics actively compile framework par run ho rha hai."),
-                "why_it_matters": data.get("why_it_matters", "Scalable cloud pipeline transitions demand highly optimized tracking protocols."),
-                "market_impact": data.get("market_impact", "Enterprise cloud optimization vectors project accelerated capital allocations.")
+                "why_en": data.get("why_it_matters", "Operational analytics query optimization protocols active."),
+                "why_hi": "Operational framework optimize karne ke liye processing metrics pipeline run ho rhi h.",
+                "impact_en": data.get("market_impact", "Enterprise cloud optimization vectors project parameters."),
+                "impact_hi": "Market infrastructure scaling operations aur breakout parameters direct support levels track kr rhe hain."
             })
         except Exception:
             short_clean_title = item.title.split(" - ")[0]
@@ -83,9 +87,11 @@ def generate_signals_dataset():
                 "title": item.title,
                 "category": "Infrastructure",
                 "what_en": f"Operational analytics tracking system is actively processing market expansion metrics for: {short_clean_title}.",
-                "what_hi": f"System backend directly pipeline me {short_clean_title} ke data packets track kar rha hai. Complete analysis overview website par live update ho chuki h.",
-                "why_it_matters": "Enterprise computing frameworks require continuous tracking to prevent communication bottlenecks across edge networks.",
-                "market_impact": "Accelerates regional tech capital expenditures while scaling overall system availability thresholds."
+                "what_hi": f"System backend directly pipeline me {short_clean_title} ke data packets track kar rha hai.",
+                "why_en": "Enterprise computing frameworks require continuous tracking to prevent communication bottlenecks.",
+                "why_hi": "Edge networks me database latency aur bottleneck data processing failure ko stop krne ke liye check zaroori h.",
+                "impact_en": "Accelerates regional tech capital expenditures while scaling overall system availability thresholds.",
+                "impact_hi": "Regional growth targets scale up honge aur capital infrastructure flow strong hone ke chances hain."
             })
     return processed
 
