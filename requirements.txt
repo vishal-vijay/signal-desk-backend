@@ -1,5 +1,7 @@
-fastapi
-uvicorn
+# 🌟 Inhe apne requirements.txt me add karo (baki fastie, uvicorn rehne dena)
+google-genai
 feedparser
-google-generativeai
-python-multipart
+requests
+fastapi
+pydantic
+uvicorn
