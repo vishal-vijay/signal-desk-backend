@@ -10,6 +10,7 @@ import requests
 
 app = FastAPI()
 
+# 🎛️ CORS Enabled taaki aapka localhost frontend bina kisi error ke data fetch kar sake
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,7 +19,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🌐 PASTE YOUR GOOGLE WEB APP URL HERE BOSS
 GSHEET_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlYDE2TbMJmwn_HIUm9FRgACnbsZ5pQeiqJeBvX37K9lphnRgNlUH1wBBEEOSVc00y/exec"
 WEBSITE_URL = "https://signal-desk.onrender.com"
 
@@ -94,7 +94,6 @@ def dispatch_dynamic_newsletters():
     if not SENDGRID_KEY: return
 
     try:
-        # 📊 Fetching multi-user array directly from permanent Google Sheet
         response = requests.get(GSHEET_SCRIPT_URL)
         users = response.json()
     except Exception as e:
@@ -150,8 +149,17 @@ def dispatch_dynamic_newsletters():
                 "content": [{"type": "text/html", "value": html_content}]
             }
             headers = {"Authorization": f"Bearer {SENDGRID_KEY}", "Content-Type": "application/json"}
-            response = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers)          
+            requests.post("[https://api.sendgrid.com/v3/mail/send](https://api.sendgrid.com/v3/mail/send)", json=payload, headers=headers)          
         except Exception: pass
+
+# 🌟 NAYA DEDICATED ROUTE: Yeh aapke local UI dashboard ko live data supply karega!
+@app.get("/api/signals")
+async def get_live_signals_for_ui():
+    try:
+        data = generate_signals_dataset()
+        return data
+    except Exception as e:
+        return {"status": "Error", "message": str(e)}
 
 @app.post("/api/subscribe")
 async def register_subscriber(req: SubscriptionRequest):
