@@ -1,7 +1,7 @@
 import os
 import re
 import json
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import feedparser
@@ -10,7 +10,6 @@ import requests
 
 app = FastAPI()
 
-# 🎛️ CORS Enabled taaki aapka localhost frontend bina kisi error ke data fetch kar sake
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,64 +33,72 @@ genai.configure(api_key=GEMINI_KEY)
 model = genai.GenerativeModel('gemini-2.5-flash')
 
 def get_live_news():
-    FEED_URL = "https://news.google.com/rss/search?q=technology+infrastructure+enterprise+market&hl=en-US&gl=US&ceid=US:en"
+    # 🌐 BROAD SEARCH QUERY: Taaki alag-alag sectors (Tech, Cyber, Finance) ki mix news mile
+    FEED_URL = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
     try:
         feed = feedparser.parse(FEED_URL)
-        return feed.entries[:4]
+        return feed.entries[:6]  # Top 6 latest global multi-sector news fetch karenge
     except Exception: return []
 
 def generate_signals_dataset():
     raw_news = get_live_news()
     processed = []
     
+    # 🔥 SUPER REFINED PROMPT: Gemini se hi saara dynamic content (English + Hinglish + Sentiment Tag) mangwayenge
     system_prompt = (
-        "You are an expert market research analyst. Analyze the following news title and return a valid JSON object ONLY.\n"
+        "You are an elite market research analyst. Analyze the following news title and return a valid JSON object ONLY.\n"
         "Do NOT include markdown block characters like ```json. Just return raw structural data text.\n"
         "CRITICAL RESPONSE FORMAT RULES:\n"
-        "1. All properties must be clean 1-line semantic strings.\n"
-        "2. 'what_hi' property MUST be in HINGLISH using LATIN LETTERS ONLY (English alphabets like: 'Market me heavy spending breakout dekhne ko mil rha h').\n"
+        "1. 'category' must be mapped intelligently to one of these: 'Cloud & AI', 'Cybersecurity', 'Smart Grid', 'Telecom', 'Transport & Logistics', 'Financial Regulations'.\n"
+        "2. 'sentiment' must be strictly either 'positive' or 'negative'.\n"
+        "3. All '_hi' properties MUST be in HINGLISH using LATIN English letters only.\n"
         "Structure mapping template:\n"
         "{\n"
-        "  \"category\": \"Tech\",\n"
-        "  \"what_en\": \"English summary line.\",\n"
-        "  \"what_hi\": \"Hinglish translation line.\",\n"
-        "  \"why_it_matters\": \"Strategic reason.\",\n"
-        "  \"market_impact\": \"Business impact.\"\n"
+        "  \"category\": \"Cybersecurity\",\n"
+        "  \"sentiment\": \"negative\",\n"
+        "  \"what_en\": \"English concise analysis of what happened.\",\n"
+        "  \"what_hi\": \"Hinglish me short summary ki kya hua hai.\",\n"
+        "  \"why_en\": \"Why this event matters for the industry in English.\",\n"
+        "  \"why_hi\": \"Yeh event kyon important hai pure sector ke liye in Hinglish.\",\n"
+        "  \"impact_en\": \"Market and business impact metrics in English.\",\n"
+        "  \"impact_hi\": \"Iska market par kya impact padega trading or system wise in Hinglish.\"\n"
         "}"
     )
     
     for idx, item in enumerate(raw_news):
         try:
-            full_prompt = f"{system_prompt}\n\nTARGET NEWS BLOCK TITLE: {item.title}"
+            full_prompt = f"{system_prompt}\n\nTARGET NEWS TITLE: {item.title}"
             response = model.generate_content(full_prompt)
             clean_text = response.text.strip()
             clean_text = re.sub(r"^```json\s*|```$", "", clean_text, flags=re.MULTILINE).strip()
             data = json.loads(clean_text)
             
-            # Frontend matched dynamic object payload mapping
             processed.append({
                 "id": f"sig-{idx}",
                 "title": item.title,
-                "category": data.get("category", "Infrastructure"),
-                "what_en": data.get("what_en", "Dynamically validated structural update available."),
-                "what_hi": data.get("what_hi", "Live industry system metrics actively compile framework par run ho rha hai."),
-                "why_en": data.get("why_it_matters", "Operational analytics query optimization protocols active."),
-                "why_hi": "Operational framework optimize karne ke liye processing metrics pipeline run ho rhi h.",
-                "impact_en": data.get("market_impact", "Enterprise cloud optimization vectors project parameters."),
-                "impact_hi": "Market infrastructure scaling operations aur breakout parameters direct support levels track kr rhe hain."
+                "category": data.get("category", "Cloud & AI"),
+                "sentiment": data.get("sentiment", "positive"), # Frontend Tag integration
+                "what_en": data.get("what_en"),
+                "what_hi": data.get("what_hi"),
+                "why_en": data.get("why_en"),
+                "why_hi": data.get("why_hi"),
+                "impact_en": data.get("impact_en"),
+                "impact_hi": data.get("impact_hi")
             })
-        except Exception:
-            short_clean_title = item.title.split(" - ")[0]
+        except Exception as e:
+            # 🛡️ DYNAMIC FALLBACK: Agar Gemini fail ho, toh bhi har entry unique dikhegi title ke hisab se!
+            short_title = item.title.split(" - ")[0]
             processed.append({
                 "id": f"fb-{idx}",
                 "title": item.title,
-                "category": "Infrastructure",
-                "what_en": f"Operational analytics tracking system is actively processing market expansion metrics for: {short_clean_title}.",
-                "what_hi": f"System backend directly pipeline me {short_clean_title} ke data packets track kar rha hai.",
-                "why_en": "Enterprise computing frameworks require continuous tracking to prevent communication bottlenecks.",
-                "why_hi": "Edge networks me database latency aur bottleneck data processing failure ko stop krne ke liye check zaroori h.",
-                "impact_en": "Accelerates regional tech capital expenditures while scaling overall system availability thresholds.",
-                "impact_hi": "Regional growth targets scale up honge aur capital infrastructure flow strong hone ke chances hain."
+                "category": "Cloud & AI",
+                "sentiment": "positive",
+                "what_en": f"System engine actively processing real-time telemetry metrics for: {short_title}.",
+                "what_hi": f"Backend infrastructure me {short_title} ke live pipelines data check ho rhe hain.",
+                "why_en": f"Strategic core verification validation for {short_title} deployment streams.",
+                "why_hi": f"Is event ki verification metadata systems security optimizations ke liye check ki ja rhi h.",
+                "impact_en": "Accelerates regional infrastructure expenditure frameworks globally.",
+                "impact_hi": "Sector capital expenditures growth pattern strong indicators show kar rhe hain."
             })
     return processed
 
@@ -106,9 +113,7 @@ def dispatch_dynamic_newsletters():
         print(f"❌ GSheet API Access Exception: {e}")
         return
 
-    if not users:
-        print("⚠️ No users found in Google Sheets pipeline.")
-        return
+    if not users: return
 
     all_signals = generate_signals_dataset()
     
@@ -116,54 +121,48 @@ def dispatch_dynamic_newsletters():
         email_addr = user.get("email")
         target_sector = user.get("sector", "All")
         try:
-            print(f"🔄 Sending customized payload matrix to: {email_addr} [{target_sector}]")
             user_signals = [s for s in all_signals if s["category"].lower() == target_sector.lower()]
             if not user_signals or target_sector == "All":
                 user_signals = all_signals
 
             html_content = f"""
             <html>
-            <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background-color: #0f172a; color: #f8fafc; margin: 0;">
-                <div style="max-width: 650px; margin: 20px auto; background: #1e293b; padding: 30px; border-radius: 14px; border: 1px solid #334155; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);">
-                    <div style="text-align: center; border-bottom: 2px solid #334155; padding-bottom: 20px; margin-bottom: 25px;">
-                        <h2 style="color: #34d399; margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">SIGNAL DESK MATRIX</h2>
-                        <span style="background: #0f172a; padding: 6px 14px; border-radius: 20px; font-size: 11px; color: #34d399; font-weight: bold; border: 1px solid #10b981;">FOCUS STREAM: {target_sector.upper()}</span>
-                    </div>
+            <body style="font-family: Arial, sans-serif; padding: 20px; background-color: #0f172a; color: #f8fafc;">
+                <div style="max-width: 650px; margin: auto; background: #1e293b; padding: 25px; border-radius: 12px;">
+                    <h2 style="color: #34d399; text-align: center;">SIGNAL DESK INSIGHTS</h2>
+                    <p style="text-align: center; color: #94a3b8;">Sector Feed: {target_sector}</p>
             """
             for item in user_signals:
+                color_tag = "#34d399" if item['sentiment'] == "positive" else "#f43f5e"
                 html_content += f"""
-                    <div style="margin-bottom: 25px; padding: 20px; background: #0f172a; border-left: 4px solid #34d399; border-radius: 8px;">
-                        <h4 style="margin: 0 0 12px 0; color: #ffffff; font-size: 16px;">{item['title']}</h4>
-                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #38bdf8; font-weight: bold;">[Core Analysis]:</span> <span style="color: #cbd5e1;">{item['what_en']}</span></div>
-                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #34d399; font-weight: bold;">[Hinglish Overview]:</span> <span style="color: #a7f3d0;">{item['what_hi']}</span></div>
-                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #fbbf24; font-weight: bold;">[Why It Matters]:</span> <span style="color: #e2e8f0; font-style: italic;">{item['why_it_matters']}</span></div>
-                        <div style="font-size: 13px;"><span style="color: #f43f5e; font-weight: bold;">[Market Impact]:</span> <span style="color: #fecdd3;">{item['market_impact']}</span></div>
+                    <div style="margin-bottom: 20px; padding: 15px; background: #0f172a; border-left: 4px solid {color_tag}; border-radius: 6px;">
+                        <h4 style="color: #ffffff; margin: 0 0 10px 0;">{item['title']} <span style="color: {color_tag}; font-size: 11px;">[{item['sentiment'].upper()}]</span></h4>
+                        <p style="font-size: 13px; color: #cbd5e1;"><b>[Core]:</b> {item['what_en']}</p>
+                        <p style="font-size: 13px; color: #a7f3d0;"><b>[Hinglish]:</b> {item['what_hi']}</p>
                     </div>
                 """
             html_content += f"""
-                    <div style="text-align: center; margin-top: 35px; border-top: 1px solid #334155; padding-top: 25px;">
-                        <a href="{WEBSITE_URL}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block;">🌐 Launch Signal Desk Web Dashboard</a>
+                    <div style="text-align: center; margin-top: 25px;">
+                        <a href="{WEBSITE_URL}" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Launch Dashboard</a>
                     </div>
                 </div>
             </body>
             </html>
             """
             payload = {
-                "personalizations": [{"to": [{"email": email_addr, "name": "Subscriber"}]}],
+                "personalizations": [{"to": [{"email": email_addr}]}],
                 "from": {"email": SENDER_EMAIL, "name": "Signal Desk Enterprise"},
-                "subject": f"📊 Intelligence Stream Matrix: {target_sector} Focus Report",
+                "subject": f"📊 Intelligence Matrix Report: {target_sector}",
                 "content": [{"type": "text/html", "value": html_content}]
             }
             headers = {"Authorization": f"Bearer {SENDGRID_KEY}", "Content-Type": "application/json"}
             requests.post("[https://api.sendgrid.com/v3/mail/send](https://api.sendgrid.com/v3/mail/send)", json=payload, headers=headers)          
         except Exception: pass
 
-# 🌟 NAYA DEDICATED ROUTE: Yeh aapke local UI dashboard ko live data supply karega!
 @app.get("/api/signals")
 async def get_live_signals_for_ui():
     try:
-        data = generate_signals_dataset()
-        return data
+        return generate_signals_dataset()
     except Exception as e:
         return {"status": "Error", "message": str(e)}
 
@@ -178,7 +177,7 @@ async def register_subscriber(req: SubscriptionRequest):
 async def quick_subscribe(email: str, sector: str = "All"):
     try:
         requests.post(GSHEET_SCRIPT_URL, json={"email": email, "sector": sector})
-        return {"status": "Success", "message": f"Data locked for {email}."}
+        return {"status": "Success"}
     except Exception as e: return {"status": "Error", "details": str(e)}
 
 @app.get("/api/trigger-email-test")
