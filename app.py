@@ -26,7 +26,7 @@ WEBSITE_URL = "https://signal-desk.onrender.com"
 
 class SubscriptionRequest(BaseModel):
     email: str
-    sector: str
+    sector: str  # Frontend ab bhejega format: "Cloud & AI [en]" ya "Cloud & AI [hi]"
 
 # 📋 PYDANTIC SCHEMAS FOR FORCED LLM STRUCTURED OUTPUT
 class SignalItemSchema(BaseModel):
@@ -74,7 +74,7 @@ def generate_signals_dataset():
     
     system_prompt = (
         "You are an elite financial and tech market research analyst.\n"
-        "Analyze the given array of news titles and return a valid JSON array of objects matching the template keys exactly.\n"
+        "Analyze the given array of news titles and return a valid JSON array of objects ONLY.\n"
         "Rules:\n"
         "1. Map 'category' strictly to: 'Cloud & AI', 'Cybersecurity', 'Smart Grid', 'Telecom', 'Transport & Logistics', 'Financial Regulations'.\n"
         "2. Map 'sentiment' strictly to: 'positive' or 'negative'.\n"
@@ -112,7 +112,7 @@ def generate_signals_dataset():
                     "why_en": data.get("why_en", "Strategic milestone parameter check."),
                     "why_hi": data.get("why_hi", "Ecosystem balance monitoring matrix validation."),
                     "impact_en": data.get("impact_en", "Technical expenditures reallocation forecast."),
-                    "impact_hi": "Capital growth allocation indices monitoring stable levels."
+                    "impact_hi": data.get("impact_hi", "Capital growth allocation indices monitoring stable levels.")
                 })
             api_success = True
             print("✅ Gemini successfully generated unique analytical datasets!")
@@ -129,7 +129,6 @@ def generate_signals_dataset():
             title = item.title
             short_title = title.split(" - ")[0]
             
-            # Smart category & sentiment calculation based on text keywords
             assigned_cat = "Cloud & AI"
             if any(w in title.lower() for w in ["security", "cyber", "hack", "attack", "breach", "fund", "block"]): 
                 assigned_cat = "Cybersecurity"
@@ -138,7 +137,6 @@ def generate_signals_dataset():
                 
             sentiment_val = "negative" if any(w in title.lower() for w in ["miss", "deadline", "storm", "kill", "shoot", "attack", "block"]) else "positive"
             
-            # Creating 100% UNIQUE text parameters based on title words so nothing repeats!
             processed.append({
                 "id": f"fb-{idx}",
                 "title": title,
@@ -155,6 +153,7 @@ def generate_signals_dataset():
     CACHE_DATA = processed
     CACHE_TIME = current_time
     return processed
+
 def dispatch_dynamic_newsletters():
     print("🚀 Running newsletter core routine engine via GSheet Dataset...")
     if not SENDGRID_KEY: 
@@ -171,16 +170,31 @@ def dispatch_dynamic_newsletters():
         print("⚠️ No subscribers found inside the database.")
         return
 
-    # Grabs the same synced data pool mapped above
     all_signals = generate_signals_dataset()
     
     for user in users:
         email_addr = user.get("email")
-        target_sector = user.get("sector", "All")
+        raw_sector = user.get("sector", "All")
+        
+        # 🌟 1. LANGUAGE EXTRACTION BLOCK (Changes made here)
+        # Format "Cloud & AI [hi]" se category aur language language nikalenge
+        user_lang = "en"  # Default language English rahegi
+        clean_sector = raw_sector
+        
+        if "[" in raw_sector and "]" in raw_sector:
+            match = re.search(r"(.+?)\s*\[(en|hi)\]", raw_sector)
+            if match:
+                clean_sector = match.group(1).strip()
+                user_lang = match.group(2).strip()
+
         try:
-            user_signals = [s for s in all_signals if s["category"].lower() == target_sector.lower()]
-            if not user_signals or target_sector == "All":
+            # Synced filter using the cleaned sector string
+            user_signals = [s for s in all_signals if s["category"].lower() == clean_sector.lower()]
+            if not user_signals or clean_sector == "All":
                 user_signals = all_signals
+
+            # Dynamic Subject mapping language wise
+            subject_line = f"📊 Intelligence Stream Matrix: {clean_sector} Focus Report" if user_lang == "en" else f"📊 Market Intelligence Matrix Report: {clean_sector}"
 
             html_content = f"""
             <html>
@@ -188,18 +202,32 @@ def dispatch_dynamic_newsletters():
                 <div style="max-width: 650px; margin: 20px auto; background: #1e293b; padding: 30px; border-radius: 14px; border: 1px solid #334155; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);">
                     <div style="text-align: center; border-bottom: 2px solid #334155; padding-bottom: 20px; margin-bottom: 25px;">
                         <h2 style="color: #34d399; margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">SIGNAL DESK INSIGHTS</h2>
-                        <span style="background: #0f172a; padding: 6px 14px; border-radius: 20px; font-size: 11px; color: #34d399; font-weight: bold; border: 1px solid #10b981;">STREAM: {target_sector.upper()} FEED</span>
+                        <span style="background: #0f172a; padding: 6px 14px; border-radius: 20px; font-size: 11px; color: #34d399; font-weight: bold; border: 1px solid #10b981;">STREAM: {clean_sector.upper()} | LANG: {user_lang.upper()}</span>
                     </div>
             """
             for item in user_signals:
                 color_tag = "#34d399" if item['sentiment'] == "positive" else "#f43f5e"
+                
+                # 🌟 2. EXCLUSIVE CONTENT CONDITIONAL SEPARATOR (Changes made here)
+                if user_lang == "hi":
+                    # Pure Single Hinglish Segment Content Block
+                    body_block = f"""
+                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #34d399; font-weight: bold;">[Kya Hua Hai]:</span> <span style="color: #a7f3d0;">{item['what_hi']}</span></div>
+                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #fbbf24; font-weight: bold;">[Kyon Important Hai]:</span> <span style="color: #e2e8f0; font-style: italic;">{item['why_hi']}</span></div>
+                        <div style="font-size: 13px;"><span style="color: #f43f5e; font-weight: bold;">[Market Par Impact]:</span> <span style="color: #fecdd3;">{item['impact_hi']}</span></div>
+                    """
+                else:
+                    # Pure Single Corporate English Segment Content Block
+                    body_block = f"""
+                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #38bdf8; font-weight: bold;">[Core Analysis]:</span> <span style="color: #cbd5e1;">{item['what_en']}</span></div>
+                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #fbbf24; font-weight: bold;">[Why It Matters]:</span> <span style="color: #e2e8f0; font-style: italic;">{item['why_en']}</span></div>
+                        <div style="font-size: 13px;"><span style="color: #f43f5e; font-weight: bold;">[Market Impact]:</span> <span style="color: #fecdd3;">{item['impact_en']}</span></div>
+                    """
+
                 html_content += f"""
                     <div style="margin-bottom: 25px; padding: 20px; background: #0f172a; border-left: 4px solid {color_tag}; border-radius: 8px;">
                         <h4 style="margin: 0 0 12px 0; color: #ffffff; font-size: 16px;">{item['title']} <span style="color: {color_tag}; font-size: 11px; font-weight: bold; margin-left: 10px;">[{item['sentiment'].upper()}]</span></h4>
-                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #38bdf8; font-weight: bold;">[Core Analysis]:</span> <span style="color: #cbd5e1;">{item['what_en']}</span></div>
-                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #34d399; font-weight: bold;">[Hinglish Overview]:</span> <span style="color: #a7f3d0;">{item['what_hi']}</span></div>
-                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #fbbf24; font-weight: bold;">[Why It Matters]:</span> <span style="color: #e2e8f0; font-style: italic;">{item['why_en']}</span></div>
-                        <div style="font-size: 13px;"><span style="color: #f43f5e; font-weight: bold;">[Market Impact]:</span> <span style="color: #fecdd3;">{item['impact_en']}</span></div>
+                        {body_block}
                     </div>
                 """
             html_content += f"""
@@ -213,7 +241,7 @@ def dispatch_dynamic_newsletters():
             payload = {
                 "personalizations": [{"to": [{"email": email_addr, "name": "Subscriber"}]}],
                 "from": {"email": SENDER_EMAIL, "name": "Signal Desk Enterprise"},
-                "subject": f"📊 Intelligence Stream Matrix: {target_sector} Focus Report",
+                "subject": subject_line,
                 "content": [{"type": "text/html", "value": html_content}]
             }
             headers = {"Authorization": f"Bearer {SENDGRID_KEY}", "Content-Type": "application/json"}
