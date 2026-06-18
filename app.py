@@ -36,10 +36,9 @@ client = genai.Client(api_key=GEMINI_KEY) if GEMINI_KEY else None
 
 CACHE_DATA = None
 CACHE_TIME = 0
-CACHE_DURATION = 300  # Data refresh cycle reduced to 5 minutes for highly active feeds
+CACHE_DURATION = 300  # 5 Minutes refresh loop window
 
 def get_live_news():
-    # 🌟 SCALE UP: Limits completely removed to fetch every single live article available
     queries = [
         "Nifty+OR+BSE+OR+NSE+OR+infra+OR+capex+OR+acquisition+geo:India",
         "enterprise+tech+OR+cloud+computing+OR+cybersecurity"
@@ -50,7 +49,6 @@ def get_live_news():
             url = f"https://news.google.com/rss/search?q={q}&hl=en-IN&gl=IN&ceid=IN:en"
             feed = feedparser.parse(url)
             if feed.entries:
-                # Slicing limits completely removed to capture full feed capacity
                 all_entries.extend(feed.entries)  
         return all_entries
     except Exception as e:
@@ -71,13 +69,10 @@ def generate_signals_dataset():
 
     processed = []
     
-    # 🌟 THE STARTUP REVOLUTION FIX: Iterating single-item loops instead of choking with batches
-    # Isse parsing errors hamesha ke liye khatam aur har ek item ka high-density profile milega
     for idx, item in enumerate(raw_news):
         title = item.title
         short_title = title.split(" - ")[0].split(" | ")[0]
         
-        # Smart pre-routing system defaults
         cat = "Financial Regulations"
         sentiment_val = "positive"
         if any(w in title.lower() for w in ["cyber", "security", "attack", "breach", "train", "oracle"]): 
@@ -94,7 +89,6 @@ def generate_signals_dataset():
         
         if client:
             try:
-                # Sharp single-item analysis template
                 prompt = (
                     f"Analyze this corporate technology/market headline: '{title}'\n\n"
                     "Generate a valid JSON object matching the exact format keys below:\n"
@@ -109,8 +103,8 @@ def generate_signals_dataset():
                     "  \"impact_hi\": \"Ecosystem capital velocity projections and short-term swing breakout tracking matrix in clean Hinglish.\"\n"
                     "}\n\n"
                     "LAWS:\n"
-                    "1. Return ONLY the raw valid JSON object block. Do not include markdown code ticks, backticks, or extra text.\n"
-                    "2. All '_hi' fields must use pure Latin characters only (No Devanagari script)."
+                    "1. Return ONLY raw valid JSON text block. Do not write any markdown decorations.\n"
+                    "2. All '_hi' fields must use pure Latin characters only."
                 )
                 
                 response = client.models.generate_content(
@@ -119,8 +113,11 @@ def generate_signals_dataset():
                 )
                 
                 clean_text = response.text.strip()
-                clean_text = clean_text.replace("```json", "").replace("
-```JSON", "").replace("```", "").strip()
+                
+                # 🌟 TOOTHING FIX: Removed backtick formatting strings variables logic to completely prevent syntax errors
+                clean_text = clean_text.strip("`").strip()
+                if clean_text.lower().startswith("json"):
+                    clean_text = clean_text[4:].strip()
                 
                 data = json.loads(clean_text)
                 
@@ -132,7 +129,7 @@ def generate_signals_dataset():
                     "what_en": data.get("what_en", f"Analysis of '{short_title}' verifies structural asset movements inside domestic enterprise frameworks."),
                     "what_hi": data.get("what_hi", f"Is development se '{short_title[:45]}' segment me corporate expansion tracking update complete ho rhi hai."),
                     "why_en": data.get("why_en", "Establishing platform benchmarks and corporate capex metrics optimization parameters check."),
-                    "why_hi": data.get("why_hi", "Margin profiles ko scale karne aur execution capabilities ko stable karne ke liye critical upgrade hai."),
+                    "why_hi": data.get("why_hi", "Margin profiles ko scale karne aur capability scale up karne ke liye critical upgrade hai."),
                     "impact_en": data.get("impact_en", "Forward models project dynamic tech capital reallocation velocities inside the sector."),
                     "impact_hi": data.get("impact_hi", "Retail portfolio risk mapping aur short-term swing matrices par is high-conviction metrics ka clear impact visible rahega.")
                 })
@@ -142,7 +139,6 @@ def generate_signals_dataset():
                 print(f"⚠️ Item indexing parsing glitch at index {idx}: {e}")
                 api_item_success = False
 
-        # Bullet-proof fail-safe per item level fallback mapping tracking
         if not api_item_success:
             processed.append({
                 "id": f"fb-{idx}",
@@ -245,7 +241,7 @@ def dispatch_dynamic_newsletters():
                 "content": [{"type": "text/html", "value": html_content}]
             }
             headers = {"Authorization": f"Bearer {SENDGRID_KEY}", "Content-Type": "application/json"}
-            requests.post("[https://api.sendgrid.com/v3/mail/send](https://api.sendgrid.com/v3/mail/send)", json=payload, headers=headers)          
+            requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers)          
         except Exception: 
             pass
 
