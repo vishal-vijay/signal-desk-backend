@@ -51,22 +51,23 @@ CACHE_TIME = 0
 CACHE_DURATION = 600  # 10 Minutes
 
 def get_live_news():
-    # 🌟 THE HYBRID INDO-GLOBAL INGESTION SYSTEM: Focuses on premium Global Tech shifts 
-    # AND core Indian Corporate Markets, Nifty/BSE sectoral indices, and Infra developments.
+    # 🌟 ULTIMATE MARKET SEARCH: Focuses strictly on Indian stocks, capex breaks, and actionable tech changes
     queries = [
-        "enterprise+tech+OR+cloud+computing+OR+cybersecurity",
-        "Nifty+OR+BSE+OR+NSE+OR+infra+OR+corporate+capex+geo:India"
+        "Nifty+OR+BSE+OR+NSE+OR+infra+OR+capex+OR+acquisition+geo:India",
+        "enterprise+tech+OR+cloud+computing+OR+cybersecurity+OR+datacenter"
     ]
     
     all_entries = []
     try:
         for q in queries:
-            url = f"https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
+            url = f"https://news.google.com/rss/search?q={q}&hl=en-IN&gl=IN&ceid=IN:en"
             feed = feedparser.parse(url)
             if feed.entries:
-                all_entries.extend(feed.entries[:4])  # Balanced 4 from global tech, 4 from Indian macros
+                # Top 4 entries fetch karenge taaki data fresh aur targeted rahe
+                all_entries.extend(feed.entries[:4])  
         return all_entries[:8]
-    except Exception:
+    except Exception as e:
+        print(f"❌ RSS Fetch Error: {e}")
         return []
 
 def generate_signals_dataset():
@@ -83,7 +84,6 @@ def generate_signals_dataset():
 
     news_titles_list = [item.title for item in raw_news]
     
-    # 🌟 ACTIONABLE PREMIUM PROMPT: Delivers deep macro-financial context like an elite quant/strategist
     system_prompt = (
         "You are an elite Lead Venture Capitalist and Indian Stock Market Strategic Advisor.\n"
         "Your role is to cut through generic news noise and deliver sharp, high-conviction market alpha and technical intelligence for professionals and active practitioners.\n\n"
@@ -109,7 +109,9 @@ def generate_signals_dataset():
                 contents=f"{system_prompt}\n\nINPUT TARGET TITLES LIST:\n{json.dumps(news_titles_list)}",
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.15  # Strict analytical mapping consistency
+                    # 🌟 THE CRITICAL FIX: Binding the Pydantic Schema so Gemini is FORCED to output our structure
+                    response_schema=List[SignalItemSchema],
+                    temperature=0.1  # Highly deterministic results
                 ),
             )
             
@@ -136,7 +138,7 @@ def generate_signals_dataset():
             print(f"⚠️ Gemini API Layer Processing Failed: {e}")
             api_success = False
             
-    # 🛡️ BULLET-PROOF DYNAMIC FALLBACK SYSTEM (If API drops or data is empty)
+    # 🛡️ DYNAMIC FALLBACK SYSTEM
     if not api_success or not processed:
         print("🔄 Executing Dynamic Content Generation Logic on Fallback Level...")
         processed = []
@@ -157,12 +159,12 @@ def generate_signals_dataset():
                 "title": title,
                 "category": assigned_cat,
                 "sentiment": sentiment_val,
-                "what_en": f"The development concerning '{short_title}' is triggering market infrastructure tracking. Monitoring updates confirm critical operational changes across frameworks.",
+                "what_en": f"The development concerning '{short_title}' is triggering market infrastructure tracking.",
                 "what_hi": f"Latest market indicators ke mutabik '{short_title[:50]}' ka direct correlation structural parameters se trace kiya ja rha hai.",
-                "why_en": f"Understanding the catalyst behind '{short_title[:40]}' is essential for risk mitigation, policy mapping, and overall strategic sector re-alignments.",
-                "why_hi": f"Yeh scenario isliye matter karta h kyonki isse structural ecosystem tracking aur monitoring systems par direct breakout effect padta h.",
-                "impact_en": f"This dynamic shift alters capital allocation velocities, asset frameworks, and operational spending trajectory models inside the {assigned_cat} sector.",
-                "impact_hi": f"Is complete event analysis se long-term perspective par macro indices scale up honge aur overall sectoral spending matrices par momentum dikh sakta h."
+                "why_en": f"Understanding the catalyst behind '{short_title[:40]}' is essential for risk mitigation and strategic alignments.",
+                "why_hi": f"Yeh scenario isliye matter karta h kyonki isse structural ecosystem tracking par direct effect padta h.",
+                "impact_en": f"This dynamic shift alters capital allocation velocities inside the {assigned_cat} sector.",
+                "impact_hi": f"Is complete event analysis se overall sectoral spending matrices par momentum dikh sakta h."
             })
 
     CACHE_DATA = processed
