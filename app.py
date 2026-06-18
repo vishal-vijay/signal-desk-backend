@@ -70,6 +70,10 @@ def get_live_news():
         print(f"❌ RSS Fetch Error: {e}")
         return []
 
+# 📋 Pydantic Wrapper ko badal kar ek Top-Level Schema banaya taaki Gemini confuse na ho
+class SignalsListResponse(BaseModel):
+    signals: List[SignalItemSchema]
+
 def generate_signals_dataset():
     global CACHE_DATA, CACHE_TIME
     current_time = time.time()
@@ -82,20 +86,17 @@ def generate_signals_dataset():
     if not raw_news:
         return []
 
-    news_titles_list = [item.title for item in raw_news]
+    # 🌟 Input payload me title ke sath index de rahe hain taaki parsing miss na ho
+    news_payload = [{"index": idx, "title": item.title} for idx, item in enumerate(raw_news)]
     
     system_prompt = (
-        "You are an elite Lead Venture Capitalist and Indian Stock Market Strategic Advisor.\n"
-        "Your role is to cut through generic news noise and deliver sharp, high-conviction market alpha and technical intelligence for professionals and active practitioners.\n\n"
-        "STRICT INGESTION AND FILTERING LAWS:\n"
-        "1. Discard any generic global political drama that does not directly impact structural enterprise spending, macro capex trajectories, or domestic tech frameworks.\n"
-        "2. Strictly map 'category' to one of these production verticals: 'Cloud & AI', 'Cybersecurity', 'Smart Grid', 'Telecom', 'Transport & Logistics', 'Financial Regulations'.\n"
-        "3. Focus on capital allocations, infrastructure orders, tech data-breaches, regulatory compliance audits, and asset expansions.\n\n"
-        "VALUE EXTRACTION MATRIX FOR USERS:\n"
-        "- what_en / what_hi: Crisp, metric-focused tracking of the exact event or technical breakthrough that just triggered.\n"
-        "- why_en / why_hi: Why does this matter for systemic scalability, portfolio allocation, or vendor locks? Focus on margin expansions or policy disruptions.\n"
-        "- impact_en / impact_hi: Sector re-rating, long-term technical expenditures reallocation models, or localized capital trajectory projections.\n\n"
-        "Write all '_hi' responses in high-energy, fluent, professional HINGLISH using Latin letters only (e.g., 'Is corporate capex push se logistics aur infra providers ko long-term momentum milega'). Keep it clean and impactful."
+        "You are an elite Indian Stock Market Analyst, Quant Researcher, and Lead Venture Capital Director.\n"
+        "Your absolute mandate is to analyze raw tech/market headlines and convert them into premium, actionable financial intelligence for active investors and professionals.\n\n"
+        "CRITICAL ANALYSIS TEMPLATE RULES:\n"
+        "1. Map each news item strictly to one category from the list.\n"
+        "2. Do NOT use placeholder text. Generate dense, high-value custom analysis for each article.\n"
+        "3. Focus heavily on market value creation, margin expansion, corporate capex tracking, and regulatory penalties.\n"
+        "4. All '_hi' fields must be inside professional, clear HINGLISH using Latin script characters only (e.g., 'Is deal se infrastructure capital flow strong hoga aur short-term breakouts dikhenge'). No Devanagari text allowed."
     )
     
     processed = []
@@ -103,74 +104,74 @@ def generate_signals_dataset():
 
     if client:
         try:
-            print("🚀 Executing Strict JSON-Mime Indo-Global Ingestion Pipeline...")
+            print("🚀 Executing Strict Top-Level Schema Object Ingestion...")
             response = client.models.generate_content(
                 model='gemini-2.5-flash',
-                contents=f"{system_prompt}\n\nINPUT TARGET TITLES LIST:\n{json.dumps(news_titles_list)}",
+                contents=f"{system_prompt}\n\nINPUT DATA POOL:\n{json.dumps(news_payload)}",
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    # 🌟 THE CRITICAL FIX: Binding the Pydantic Schema so Gemini is FORCED to output our structure
-                    response_schema=List[SignalItemSchema],
-                    temperature=0.1  # Highly deterministic results
+                    # 🌟 FIX: List wrapper hata kar direct response object schema bound kiya hai
+                    response_schema=SignalsListResponse,
+                    temperature=0.1
                 ),
             )
             
             clean_text = response.text.strip()
-            batch_data = json.loads(clean_text)
+            parsed_json = json.loads(clean_text)
+            batch_data = parsed_json.get("signals", [])
             
             for idx, data in enumerate(batch_data):
+                if idx >= len(raw_news): break
                 processed.append({
                     "id": f"sig-{idx}",
-                    "title": data.get("title", news_titles_list[idx] if idx < len(news_titles_list) else "Market Update"),
+                    "title": raw_news[idx].title, # Static array tracking fallback safety
                     "category": data.get("category", "Cloud & AI"),
                     "sentiment": data.get("sentiment", "positive"),
-                    "what_en": data.get("what_en", "Domestic infrastructure baseline capability verified."),
-                    "what_hi": data.get("what_hi", "Indian corporate tech parameters update complete."),
-                    "why_en": data.get("why_en", "Sector re-rating and operational valuation momentum check."),
-                    "why_hi": data.get("why_hi", "Margin expansion aur structural volume scaling ke liye yeh parameter critical hai."),
-                    "impact_en": data.get("impact_en", "Capex spending projections and retail stock trajectories stable."),
-                    "impact_hi": data.get("impact_hi", "Short-term swing trajectory aur technical breakout matrix par sharp positive indices visible hain.")
+                    "what_en": data.get("what_en", "Domestic enterprise infrastructure update verified."),
+                    "what_hi": data.get("what_hi", "Core technical framework status setup ready."),
+                    "why_en": data.get("why_en", "Operational efficiency scaling asset validation check."),
+                    "why_hi": data.get("why_hi", "Margin expand karne aur capability scale up karne ke liye zaroori hai."),
+                    "impact_en": data.get("impact_en", "Tech expenditure reallocation models stable."),
+                    "impact_hi": data.get("impact_hi", "Short-term momentum matrices par alpha expansion trend visible hai.")
                 })
-            api_success = True
-            print("✅ Dynamic Indo-Global analytical datasets locked successfully!")
+            
+            if processed:
+                api_success = True
+                print(f"✅ Master System Connected! Successfully parsed {len(processed)} production signals.")
 
         except Exception as e:
-            print(f"⚠️ Gemini API Layer Processing Failed: {e}")
+            print(f"⚠️ Gemini API Master Layer Error: {e}")
             api_success = False
             
-    # 🛡️ DYNAMIC FALLBACK SYSTEM
+    # 🛡️ DYNAMIC HARD REPAIR FALLBACK (Agar API phir bhi temporary glitch kare)
     if not api_success or not processed:
-        print("🔄 Executing Dynamic Content Generation Logic on Fallback Level...")
+        print("🔄 API Dropped: Running Hardcoded Structural Mapping Logic...")
         processed = []
         for idx, item in enumerate(raw_news):
             title = item.title
-            short_title = title.split(" - ")[0]
             
-            assigned_cat = "Cloud & AI"
-            if any(w in title.lower() for w in ["security", "cyber", "hack", "attack", "breach", "fund", "block"]): 
-                assigned_cat = "Cybersecurity"
-            elif any(w in title.lower() for w in ["deal", "peace", "market", "billion", "trillion", "nifty", "bse", "nse", "order"]): 
-                assigned_cat = "Financial Regulations"
-                
-            sentiment_val = "negative" if any(w in title.lower() for w in ["miss", "deadline", "storm", "attack", "block", "drop", "loss"]) else "positive"
+            # Smart category default routing
+            cat = "Financial Regulations"
+            if "cyber" in title.lower() or "security" in title.lower() or "train" in title.lower(): cat = "Cybersecurity"
+            elif "cloud" in title.lower() or "ai" in title.lower() or "microsoft" in title.lower(): cat = "Cloud & AI"
+            elif "geo" in title.lower() or "infra" in title.lower() or "share" in title.lower(): cat = "Smart Grid"
             
             processed.append({
                 "id": f"fb-{idx}",
                 "title": title,
-                "category": assigned_cat,
-                "sentiment": sentiment_val,
-                "what_en": f"The development concerning '{short_title}' is triggering market infrastructure tracking.",
-                "what_hi": f"Latest market indicators ke mutabik '{short_title[:50]}' ka direct correlation structural parameters se trace kiya ja rha hai.",
-                "why_en": f"Understanding the catalyst behind '{short_title[:40]}' is essential for risk mitigation and strategic alignments.",
-                "why_hi": f"Yeh scenario isliye matter karta h kyonki isse structural ecosystem tracking par direct effect padta h.",
-                "impact_en": f"This dynamic shift alters capital allocation velocities inside the {assigned_cat} sector.",
-                "impact_hi": f"Is complete event analysis se overall sectoral spending matrices par momentum dikh sakta h."
+                "category": cat,
+                "sentiment": "positive" if "dividend" in title.lower() or "drive" in title.lower() or "deal" in title.lower() else "negative",
+                "what_en": f"Market analysis tracking indicates high volume velocity actions for '{title[:50]}'. This directly correlates with corporate developments.",
+                "what_hi": f"Is announcement se enterprise ecosystem me major shifts trace ho rhe hain jo framework automation ko drive karenge.",
+                "why_en": f"This deployment is vital because it establishes clear enterprise dominance, optimizes vendor margins, and avoids multi-cloud platform bottlenecks.",
+                "why_hi": f"Yeh factor isliye crucial h kyonki corporate capex spending aur execution capacities ko short-term me scale up karega.",
+                "impact_en": f"Forward projections suggest immediate stock rating expansions and technical spending reallocations within the domestic sector.",
+                "impact_hi": f"Retail portfolio allocation aur structural investment trajectories par iska strong positive trend dekhne ko mil sakta hai."
             })
 
     CACHE_DATA = processed
     CACHE_TIME = current_time
     return processed
-
 def dispatch_dynamic_newsletters():
     print("🚀 Running newsletter core routine engine via GSheet Dataset...")
     if not SENDGRID_KEY: 
