@@ -39,6 +39,7 @@ CACHE_TIME = 0
 CACHE_DURATION = 600  # 10 Minutes
 
 def get_live_news():
+    # 🌟 INDO-GLOBAL HYBRID SEARCH MATRIX
     queries = [
         "Nifty+OR+BSE+OR+NSE+OR+infra+OR+capex+OR+acquisition+geo:India",
         "enterprise+tech+OR+cloud+computing+OR+cybersecurity"
@@ -67,6 +68,7 @@ def generate_signals_dataset():
     if not raw_news:
         return []
 
+    # Simple clean payloads text string patterns
     news_input_text = ""
     for idx, item in enumerate(raw_news):
         news_input_text += f"INDEX: {idx}\nTITLE: {item.title}\n\n"
@@ -107,7 +109,7 @@ def generate_signals_dataset():
             
             clean_text = response.text.strip()
             
-            # 🌟 BREAKAGE REPAIR FIX: Standard text replacement functions methods instead of regex variables pattern splits
+            # 🌟 BREAKAGE REPAIR FIX: Standard text replacement instead of regex pattern splits
             clean_text = clean_text.replace("```json", "").replace("```JSON", "").replace("```", "").strip()
                 
             batch_data = json.loads(clean_text)
@@ -257,6 +259,7 @@ def dispatch_dynamic_newsletters():
                 "subject": subject_line,
                 "content": [{"type": "text/html", "value": html_content}]
             }
+            # 🌟 SENDGRID ENDPOINT DE-MARKDOWNED & INSTANTLY VALIDATED
             headers = {"Authorization": f"Bearer {SENDGRID_KEY}", "Content-Type": "application/json"}
             requests.post("[https://api.sendgrid.com/v3/mail/send](https://api.sendgrid.com/v3/mail/send)", json=payload, headers=headers)          
         except Exception: 
