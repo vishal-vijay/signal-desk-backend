@@ -36,7 +36,7 @@ client = genai.Client(api_key=GEMINI_KEY) if GEMINI_KEY else None
 
 CACHE_DATA = None
 CACHE_TIME = 0
-CACHE_DURATION = 300  # 5 Minutes refresh loop window
+CACHE_DURATION = 300  # 5 Minutes refresh cycle loop
 
 def get_live_news():
     queries = [
@@ -75,13 +75,21 @@ def generate_signals_dataset():
         
         cat = "Financial Regulations"
         sentiment_val = "positive"
+        region_val = "🇮🇳 India Market" if any(w in title.lower() for w in ["nifty", "sensex", "bse", "nse", "india", "alphageo", "meesho", "inspira"]) else "🌐 Global Tech"
+        metric_val = "💼 Corporate Capex"
+
         if any(w in title.lower() for w in ["cyber", "security", "attack", "breach", "train", "oracle"]): 
             cat = "Cybersecurity"
+            metric_val = "🔒 Compliance Risk"
         elif any(w in title.lower() for w in ["cloud", "ai", "microsoft", "aws", "azure", "github", "computing", "meesho"]): 
             cat = "Cloud & AI"
+            metric_val = "🚀 Tech Disruption"
         elif any(w in title.lower() for w in ["nifty", "sensex", "share", "price", "dividend", "alphageo", "matrix", "turnaround"]): 
             cat = "Smart Grid"
+            metric_val = "📈 Momentum Breakout"
             
+        if "dividend" in title.lower():
+            metric_val = "💰 Yield Payout"
         if any(w in title.lower() for w in ["lawsuit", "negative", "drop", "loss", "shaky", "tension"]):
             sentiment_val = "negative"
 
@@ -90,11 +98,13 @@ def generate_signals_dataset():
         if client:
             try:
                 prompt = (
-                    f"Analyze this corporate technology/market headline: '{title}'\n\n"
+                    f"Analyze this technology/market headline: '{title}'\n\n"
                     "Generate a valid JSON object matching the exact format keys below:\n"
                     "{\n"
                     "  \"category\": \"Strictly one of: 'Cloud & AI', 'Cybersecurity', 'Smart Grid', 'Telecom', 'Transport & Logistics', 'Financial Regulations'\",\n"
                     "  \"sentiment\": \"'positive', 'negative' or 'neutral'\",\n"
+                    "  \"region\": \"Must be strictly either '🇮🇳 India Market' or '🌐 Global Tech'\",\n"
+                    "  \"tag_metric\": \"Must be strictly one of: '📈 Sector Re-rating', '💰 Yield Payout', '💼 Corporate Capex', '🚀 Tech Disruption', '🔒 Compliance Risk'\",\n"
                     "  \"what_en\": \"Detailed professional analysis summarizing this disruption in English.\",\n"
                     "  \"what_hi\": \"Dense comprehensive analytical summary in conversational HINGLISH using Latin letters only.\",\n"
                     "  \"why_en\": \"Strategic explanation outlining why this is critical for enterprise ecosystems or Nifty/BSE markets in English.\",\n"
@@ -103,8 +113,8 @@ def generate_signals_dataset():
                     "  \"impact_hi\": \"Ecosystem capital velocity projections and short-term swing breakout tracking matrix in clean Hinglish.\"\n"
                     "}\n\n"
                     "LAWS:\n"
-                    "1. Return ONLY raw valid JSON text block. Do not write any markdown decorations.\n"
-                    "2. All '_hi' fields must use pure Latin characters only."
+                    "1. Return ONLY the raw valid JSON text block object. No markdown wrapping strings.\n"
+                    "2. All '_hi' fields must use pure Latin script characters only. Discard Devanagari text structures completely."
                 )
                 
                 response = client.models.generate_content(
@@ -113,8 +123,6 @@ def generate_signals_dataset():
                 )
                 
                 clean_text = response.text.strip()
-                
-                # 🌟 TOOTHING FIX: Removed backtick formatting strings variables logic to completely prevent syntax errors
                 clean_text = clean_text.strip("`").strip()
                 if clean_text.lower().startswith("json"):
                     clean_text = clean_text[4:].strip()
@@ -126,6 +134,8 @@ def generate_signals_dataset():
                     "title": title,
                     "category": data.get("category", cat),
                     "sentiment": data.get("sentiment", sentiment_val),
+                    "region": data.get("region", region_val),
+                    "tag_metric": data.get("tag_metric", metric_val),
                     "what_en": data.get("what_en", f"Analysis of '{short_title}' verifies structural asset movements inside domestic enterprise frameworks."),
                     "what_hi": data.get("what_hi", f"Is development se '{short_title[:45]}' segment me corporate expansion tracking update complete ho rhi hai."),
                     "why_en": data.get("why_en", "Establishing platform benchmarks and corporate capex metrics optimization parameters check."),
@@ -136,7 +146,7 @@ def generate_signals_dataset():
                 api_item_success = True
                 
             except Exception as e:
-                print(f"⚠️ Item indexing parsing glitch at index {idx}: {e}")
+                print(f"⚠️ Single-Item JSON parse escape trigger context {idx}: {e}")
                 api_item_success = False
 
         if not api_item_success:
@@ -145,6 +155,8 @@ def generate_signals_dataset():
                 "title": title,
                 "category": cat,
                 "sentiment": sentiment_val,
+                "region": region_val,
+                "tag_metric": metric_val,
                 "what_en": f"Analysis of '{short_title}' highlights tactical structural movements and asset deployment parameters updating domestic baselines.",
                 "what_hi": f"Is latest market track se '{short_title[:45]}' segment me immediate enterprise triggers aur corporate scaling updates visible ho rhe hain.",
                 "why_en": f"This metrics deployment is vital for core corporate capex optimization, risk mitigation, and avoiding vendor platform bottlenecks.",
@@ -201,20 +213,30 @@ def dispatch_dynamic_newsletters():
                 <div style="max-width: 650px; margin: 20px auto; background: #1e293b; padding: 30px; border-radius: 14px; border: 1px solid #334155; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);">
                     <div style="text-align: center; border-bottom: 2px solid #334155; padding-bottom: 20px; margin-bottom: 25px;">
                         <h2 style="color: #34d399; margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">SIGNAL DESK INSIGHTS</h2>
-                        <span style="background: #0f172a; padding: 6px 14px; border-radius: 20px; font-size: 11px; color: #34d399; font-weight: bold; border: 1px solid #10b981;">STREAM: {clean_sector.upper()} | LANG: {user_lang.upper()}</span>
+                        <span style="background: #0f172a; padding: 6px 14px; border-radius: 20px; font-size: 11px; color: #34d399; font-weight: bold; border: 1px solid #10b981; margin-right: 5px;">STREAM: {clean_sector.upper()}</span>
+                        <span style="background: #0f172a; padding: 6px 14px; border-radius: 20px; font-size: 11px; color: #fbbf24; font-weight: bold; border: 1px solid #d97706;">LANG: {user_lang.upper()}</span>
                     </div>
             """
             for item in user_signals:
                 color_tag = "#34d399" if item['sentiment'] == "positive" else "#f43f5e"
                 
+                html_badge_block = f"""
+                    <div style="margin-bottom: 12px; flex gap: 6px;">
+                        <span style="background: #1e293b; color: #34d399; font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: bold; border: 1px solid #334155;">{item.get('region', '🇮🇳 India Market')}</span>
+                        <span style="background: #1e293b; color: #fbbf24; font-size: 10px; padding: 3px 8px; border-radius: 4px; font-weight: bold; border: 1px solid #334155; margin-left: 5px;">{item.get('tag_metric', '💼 Corporate Cape')}</span>
+                    </div>
+                """
+
                 if user_lang == "hi":
                     body_block = f"""
+                        {html_badge_block}
                         <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #34d399; font-weight: bold;">[Kya Hua Hai]:</span> <span style="color: #a7f3d0;">{item['what_hi']}</span></div>
                         <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #fbbf24; font-weight: bold;">[Kyon Important Hai]:</span> <span style="color: #e2e8f0; font-style: italic;">{item['why_hi']}</span></div>
                         <div style="font-size: 13px;"><span style="color: #f43f5e; font-weight: bold;">[Market Par Impact]:</span> <span style="color: #fecdd3;">{item['impact_hi']}</span></div>
                     """
                 else:
                     body_block = f"""
+                        {html_badge_block}
                         <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #38bdf8; font-weight: bold;">[Core Analysis]:</span> <span style="color: #cbd5e1;">{item['what_en']}</span></div>
                         <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #fbbf24; font-weight: bold;">[Why It Matters]:</span> <span style="color: #e2e8f0; font-style: italic;">{item['why_en']}</span></div>
                         <div style="font-size: 13px;"><span style="color: #f43f5e; font-weight: bold;">[Market Impact]:</span> <span style="color: #fecdd3;">{item['impact_en']}</span></div>
