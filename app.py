@@ -36,10 +36,10 @@ client = genai.Client(api_key=GEMINI_KEY) if GEMINI_KEY else None
 
 CACHE_DATA = None
 CACHE_TIME = 0
-CACHE_DURATION = 600  # 10 Minutes
+CACHE_DURATION = 300  # Data refresh cycle reduced to 5 minutes for highly active feeds
 
 def get_live_news():
-    # 🌟 INDO-GLOBAL HYBRID SEARCH MATRIX
+    # 🌟 SCALE UP: Limits completely removed to fetch every single live article available
     queries = [
         "Nifty+OR+BSE+OR+NSE+OR+infra+OR+capex+OR+acquisition+geo:India",
         "enterprise+tech+OR+cloud+computing+OR+cybersecurity"
@@ -50,8 +50,9 @@ def get_live_news():
             url = f"https://news.google.com/rss/search?q={q}&hl=en-IN&gl=IN&ceid=IN:en"
             feed = feedparser.parse(url)
             if feed.entries:
-                all_entries.extend(feed.entries[:4])  
-        return all_entries[:8]
+                # Slicing limits completely removed to capture full feed capacity
+                all_entries.extend(feed.entries)  
+        return all_entries
     except Exception as e:
         print(f"❌ RSS Fetch Error: {e}")
         return []
@@ -68,108 +69,92 @@ def generate_signals_dataset():
     if not raw_news:
         return []
 
-    # Simple clean payloads text string patterns
-    news_input_text = ""
-    for idx, item in enumerate(raw_news):
-        news_input_text += f"INDEX: {idx}\nTITLE: {item.title}\n\n"
-    
-    system_prompt = (
-        "You are an elite Indian Stock Market Analyst, Quant Researcher, and Lead Venture Capital Director.\n"
-        "Analyze the provided raw headlines and convert them into premium financial intelligence. Your response must be a raw JSON array matching the layout structure below.\n\n"
-        "STRICT JSON OUTPUT FORMAT EXAMPLE:\n"
-        "[\n"
-        "  {\n"
-        "    \"index\": 0,\n"
-        "    \"category\": \"Cloud & AI\",\n"
-        "    \"sentiment\": \"positive\",\n"
-        "    \"what_en\": \"Detailed English analysis of the disruption.\",\n"
-        "    \"what_hi\": \"Comprehensive data analysis summary in Hinglish using Latin letters only.\",\n"
-        "    \"why_en\": \"Strategic explanation outlining why this matters to corporate enterprise footprints.\",\n"
-        "    \"why_hi\": \"Detailed macro analysis breakdown in fluent Hinglish.\",\n"
-        "    \"impact_en\": \"Forward-looking financial expenditure impact trends and stock rating revisions.\",\n"
-        "    \"impact_hi\": \"Ecosystem capital trajectory and short-term technical breakout projections in Hinglish.\"\n"
-        "  }\n"
-        "]\n\n"
-        "LAWS:\n"
-        "1. Map categories strictly to: 'Cloud & AI', 'Cybersecurity', 'Smart Grid', 'Telecom', 'Transport & Logistics', 'Financial Regulations'.\n"
-        "2. All '_hi' fields must be in clear HINGLISH using Latin script characters only (e.g., 'Is structural move se infrastructure capital flows robust honge'). No Devanagari script allowed.\n"
-        "3. Return ONLY the raw valid JSON array block. Do not wrap it in markdown code blocks or include any extra text formatting."
-    )
-    
     processed = []
-    api_success = False
+    
+    # 🌟 THE STARTUP REVOLUTION FIX: Iterating single-item loops instead of choking with batches
+    # Isse parsing errors hamesha ke liye khatam aur har ek item ka high-density profile milega
+    for idx, item in enumerate(raw_news):
+        title = item.title
+        short_title = title.split(" - ")[0].split(" | ")[0]
+        
+        # Smart pre-routing system defaults
+        cat = "Financial Regulations"
+        sentiment_val = "positive"
+        if any(w in title.lower() for w in ["cyber", "security", "attack", "breach", "train", "oracle"]): 
+            cat = "Cybersecurity"
+        elif any(w in title.lower() for w in ["cloud", "ai", "microsoft", "aws", "azure", "github", "computing", "meesho"]): 
+            cat = "Cloud & AI"
+        elif any(w in title.lower() for w in ["nifty", "sensex", "share", "price", "dividend", "alphageo", "matrix", "turnaround"]): 
+            cat = "Smart Grid"
+            
+        if any(w in title.lower() for w in ["lawsuit", "negative", "drop", "loss", "shaky", "tension"]):
+            sentiment_val = "negative"
 
-    if client:
-        try:
-            print("🚀 Executing Direct Plaintext-Bound Batch Extraction...")
-            response = client.models.generate_content(
-                model='gemini-2.5-flash',
-                contents=f"{system_prompt}\n\nINPUT DATA POOL:\n{news_input_text}",
-            )
-            
-            clean_text = response.text.strip()
-            
-            # 🌟 BREAKAGE REPAIR FIX: Standard text replacement instead of regex pattern splits
-            clean_text = clean_text.replace("```json", "").replace("```JSON", "").replace("```", "").strip()
+        api_item_success = False
+        
+        if client:
+            try:
+                # Sharp single-item analysis template
+                prompt = (
+                    f"Analyze this corporate technology/market headline: '{title}'\n\n"
+                    "Generate a valid JSON object matching the exact format keys below:\n"
+                    "{\n"
+                    "  \"category\": \"Strictly one of: 'Cloud & AI', 'Cybersecurity', 'Smart Grid', 'Telecom', 'Transport & Logistics', 'Financial Regulations'\",\n"
+                    "  \"sentiment\": \"'positive', 'negative' or 'neutral'\",\n"
+                    "  \"what_en\": \"Detailed professional analysis summarizing this disruption in English.\",\n"
+                    "  \"what_hi\": \"Dense comprehensive analytical summary in conversational HINGLISH using Latin letters only.\",\n"
+                    "  \"why_en\": \"Strategic explanation outlining why this is critical for enterprise ecosystems or Nifty/BSE markets in English.\",\n"
+                    "  \"why_hi\": \"Detailed macro analysis breakdown in fluent Hinglish using Latin letters.\",\n"
+                    "  \"impact_en\": \"Forward-looking technical/financial expenditures reallocation models and potential stock rating expansions.\",\n"
+                    "  \"impact_hi\": \"Ecosystem capital velocity projections and short-term swing breakout tracking matrix in clean Hinglish.\"\n"
+                    "}\n\n"
+                    "LAWS:\n"
+                    "1. Return ONLY the raw valid JSON object block. Do not include markdown code ticks, backticks, or extra text.\n"
+                    "2. All '_hi' fields must use pure Latin characters only (No Devanagari script)."
+                )
                 
-            batch_data = json.loads(clean_text)
-            
-            for item in batch_data:
-                idx = int(item.get("index", 0))
-                if idx >= len(raw_news): continue
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=prompt,
+                )
+                
+                clean_text = response.text.strip()
+                clean_text = clean_text.replace("```json", "").replace("
+```JSON", "").replace("```", "").strip()
+                
+                data = json.loads(clean_text)
                 
                 processed.append({
                     "id": f"sig-{idx}",
-                    "title": raw_news[idx].title,
-                    "category": item.get("category", "Cloud & AI"),
-                    "sentiment": item.get("sentiment", "positive"),
-                    "what_en": item.get("what_en", "Domestic enterprise infrastructure update verified."),
-                    "what_hi": item.get("what_hi", "Core technical framework status setup ready."),
-                    "why_en": item.get("why_en", "Operational efficiency scaling asset validation check."),
-                    "why_hi": item.get("why_hi", "Margin expand karne aur capability scale up karne ke liye zaroori hai."),
-                    "impact_en": item.get("impact_en", "Tech expenditure reallocation models stable."),
-                    "impact_hi": item.get("impact_hi", "Short-term momentum matrices par alpha expansion trend visible hai.")
+                    "title": title,
+                    "category": data.get("category", cat),
+                    "sentiment": data.get("sentiment", sentiment_val),
+                    "what_en": data.get("what_en", f"Analysis of '{short_title}' verifies structural asset movements inside domestic enterprise frameworks."),
+                    "what_hi": data.get("what_hi", f"Is development se '{short_title[:45]}' segment me corporate expansion tracking update complete ho rhi hai."),
+                    "why_en": data.get("why_en", "Establishing platform benchmarks and corporate capex metrics optimization parameters check."),
+                    "why_hi": data.get("why_hi", "Margin profiles ko scale karne aur execution capabilities ko stable karne ke liye critical upgrade hai."),
+                    "impact_en": data.get("impact_en", "Forward models project dynamic tech capital reallocation velocities inside the sector."),
+                    "impact_hi": data.get("impact_hi", "Retail portfolio risk mapping aur short-term swing matrices par is high-conviction metrics ka clear impact visible rahega.")
                 })
-            
-            if processed:
-                api_success = True
-                print(f"✅ Production Analytics Processed successfully! Count: {len(processed)}")
-
-        except Exception as e:
-            print(f"⚠️ Gemini Direct Raw Aggregation Exception: {e}")
-            api_success = False
-            
-    if not api_success or not processed:
-        print("🔄 Running Premium Hardcoded Structural Ingestion Logic...")
-        processed = []
-        for idx, item in enumerate(raw_news):
-            title = item.title
-            short_title = title.split(" - ")[0].split(" | ")[0]
-            
-            cat = "Financial Regulations"
-            sentiment_val = "positive"
-            
-            if any(w in title.lower() for w in ["cyber", "security", "attack", "breach", "train", "oracle"]): 
-                cat = "Cybersecurity"
-            elif any(w in title.lower() for w in ["cloud", "ai", "microsoft", "aws", "azure", "github", "computing", "meesho"]): 
-                cat = "Cloud & AI"
-            elif any(w in title.lower() for w in ["nifty", "sensex", "share", "price", "dividend", "alphageo", "matrix", "turnaround"]): 
-                cat = "Smart Grid"
+                api_item_success = True
                 
-            if any(w in title.lower() for w in ["lawsuit", "negative", "drop", "loss", "shaky", "tension"]):
-                sentiment_val = "negative"
-            
+            except Exception as e:
+                print(f"⚠️ Item indexing parsing glitch at index {idx}: {e}")
+                api_item_success = False
+
+        # Bullet-proof fail-safe per item level fallback mapping tracking
+        if not api_item_success:
             processed.append({
                 "id": f"fb-{idx}",
                 "title": title,
                 "category": cat,
                 "sentiment": sentiment_val,
-                "what_en": f"Analysis of '{short_title}' highlights tactical structural movements and asset deployment parameters directly updating domestic corporate baselines.",
-                "what_hi": f"Is latest market track se '{short_title[:45]}' segment me immediate enterprise triggers aur corporate scaling optimization parameters visible ho rhe hain.",
-                "why_en": f"This tracking matrix is vital for core risk mitigation, capital budget capex optimization, and avoiding multi-cloud single-vendor dependency bottlenecks.",
-                "why_hi": f"Yeh factor isliye critical h kyonki yeh step short-term me executing capacities aur margin stability ko clear-cut push provide karega.",
+                "what_en": f"Analysis of '{short_title}' highlights tactical structural movements and asset deployment parameters updating domestic baselines.",
+                "what_hi": f"Is latest market track se '{short_title[:45]}' segment me immediate enterprise triggers aur corporate scaling updates visible ho rhe hain.",
+                "why_en": f"This metrics deployment is vital for core corporate capex optimization, risk mitigation, and avoiding vendor platform bottlenecks.",
+                "why_hi": f"Yeh expansion long-term growth aur multi-vendor management strategies ko strengthen karne ke liye critical infrastructure upgrade hai.",
                 "impact_en": f"Forward tracking models project immediate industry rating re-evaluations and dynamic technical capital reallocation velocities.",
-                "impact_hi": f"Retail portfolio risk mapping aur technical breakout trajectories par is macro framework integration ka dynamic up-move effect dikhega."
+                "impact_hi": f"Retail portfolio risk mapping aur industry development frameworks par is continuous momentum ka solid impact dikhega."
             })
 
     CACHE_DATA = processed
@@ -259,7 +244,6 @@ def dispatch_dynamic_newsletters():
                 "subject": subject_line,
                 "content": [{"type": "text/html", "value": html_content}]
             }
-            # 🌟 SENDGRID ENDPOINT DE-MARKDOWNED & INSTANTLY VALIDATED
             headers = {"Authorization": f"Bearer {SENDGRID_KEY}", "Content-Type": "application/json"}
             requests.post("[https://api.sendgrid.com/v3/mail/send](https://api.sendgrid.com/v3/mail/send)", json=payload, headers=headers)          
         except Exception: 
