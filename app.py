@@ -22,11 +22,11 @@ app.add_middleware(
 )
 
 GSHEET_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlYDE2TbMJmwn_HIUm9FRgACnbsZ5pQeiqJeBvX37K9lphnRgNlUH1wBBEEOSVc00y/exec"
-WEBSITE_URL = "https://signal-desk.onrender.com"
+WEBSITE_URL = "https://signal-desk-enterprise.onrender.com"
 
 class SubscriptionRequest(BaseModel):
     email: str
-    sector: str  # Frontend ab bhejega format: "Cloud & AI [en]" ya "Cloud & AI [hi]"
+    sector: str
 
 # 📋 PYDANTIC SCHEMAS FOR FORCED LLM STRUCTURED OUTPUT
 class SignalItemSchema(BaseModel):
@@ -51,10 +51,21 @@ CACHE_TIME = 0
 CACHE_DURATION = 600  # 10 Minutes
 
 def get_live_news():
-    FEED_URL = "https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
+    # 🌟 THE HYBRID INDO-GLOBAL INGESTION SYSTEM: Focuses on premium Global Tech shifts 
+    # AND core Indian Corporate Markets, Nifty/BSE sectoral indices, and Infra developments.
+    queries = [
+        "enterprise+tech+OR+cloud+computing+OR+cybersecurity",
+        "Nifty+OR+BSE+OR+NSE+OR+infra+OR+corporate+capex+geo:India"
+    ]
+    
+    all_entries = []
     try:
-        feed = feedparser.parse(FEED_URL)
-        return feed.entries[:5]
+        for q in queries:
+            url = f"https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
+            feed = feedparser.parse(url)
+            if feed.entries:
+                all_entries.extend(feed.entries[:4])  # Balanced 4 from global tech, 4 from Indian macros
+        return all_entries[:8]
     except Exception:
         return []
 
@@ -72,15 +83,19 @@ def generate_signals_dataset():
 
     news_titles_list = [item.title for item in raw_news]
     
+    # 🌟 ACTIONABLE PREMIUM PROMPT: Delivers deep macro-financial context like an elite quant/strategist
     system_prompt = (
-        "You are an elite financial and tech market research analyst.\n"
-        "Analyze the given array of news titles and return a valid JSON array of objects ONLY.\n"
-        "Rules:\n"
-        "1. Map 'category' strictly to: 'Cloud & AI', 'Cybersecurity', 'Smart Grid', 'Telecom', 'Transport & Logistics', 'Financial Regulations'.\n"
-        "2. Map 'sentiment' strictly to: 'positive' or 'negative'.\n"
-        "3. Write 'what_hi', 'why_hi', and 'impact_hi' in unique, deep, contextual Hinglish using Latin English letters only.\n"
-        "Template structure:\n"
-        "[{\"title\": \"string\", \"category\": \"string\", \"sentiment\": \"string\", \"what_en\": \"string\", \"what_hi\": \"string\", \"why_en\": \"string\", \"why_hi\": \"string\", \"impact_en\": \"string\", \"impact_hi\": \"string\"}]"
+        "You are an elite Lead Venture Capitalist and Indian Stock Market Strategic Advisor.\n"
+        "Your role is to cut through generic news noise and deliver sharp, high-conviction market alpha and technical intelligence for professionals and active practitioners.\n\n"
+        "STRICT INGESTION AND FILTERING LAWS:\n"
+        "1. Discard any generic global political drama that does not directly impact structural enterprise spending, macro capex trajectories, or domestic tech frameworks.\n"
+        "2. Strictly map 'category' to one of these production verticals: 'Cloud & AI', 'Cybersecurity', 'Smart Grid', 'Telecom', 'Transport & Logistics', 'Financial Regulations'.\n"
+        "3. Focus on capital allocations, infrastructure orders, tech data-breaches, regulatory compliance audits, and asset expansions.\n\n"
+        "VALUE EXTRACTION MATRIX FOR USERS:\n"
+        "- what_en / what_hi: Crisp, metric-focused tracking of the exact event or technical breakthrough that just triggered.\n"
+        "- why_en / why_hi: Why does this matter for systemic scalability, portfolio allocation, or vendor locks? Focus on margin expansions or policy disruptions.\n"
+        "- impact_en / impact_hi: Sector re-rating, long-term technical expenditures reallocation models, or localized capital trajectory projections.\n\n"
+        "Write all '_hi' responses in high-energy, fluent, professional HINGLISH using Latin letters only (e.g., 'Is corporate capex push se logistics aur infra providers ko long-term momentum milega'). Keep it clean and impactful."
     )
     
     processed = []
@@ -88,13 +103,13 @@ def generate_signals_dataset():
 
     if client:
         try:
-            print("🚀 Executing Strict JSON-Mime Single-Shot Batch Request...")
+            print("🚀 Executing Strict JSON-Mime Indo-Global Ingestion Pipeline...")
             response = client.models.generate_content(
                 model='gemini-2.5-flash',
                 contents=f"{system_prompt}\n\nINPUT TARGET TITLES LIST:\n{json.dumps(news_titles_list)}",
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
-                    temperature=0.3
+                    temperature=0.15  # Strict analytical mapping consistency
                 ),
             )
             
@@ -107,23 +122,23 @@ def generate_signals_dataset():
                     "title": data.get("title", news_titles_list[idx] if idx < len(news_titles_list) else "Market Update"),
                     "category": data.get("category", "Cloud & AI"),
                     "sentiment": data.get("sentiment", "positive"),
-                    "what_en": data.get("what_en", "Analysis parsed successfully."),
-                    "what_hi": data.get("what_hi", "Live industry metadata pipeline active."),
-                    "why_en": data.get("why_en", "Strategic milestone parameter check."),
-                    "why_hi": data.get("why_hi", "Ecosystem balance monitoring matrix validation."),
-                    "impact_en": data.get("impact_en", "Technical expenditures reallocation forecast."),
-                    "impact_hi": data.get("impact_hi", "Capital growth allocation indices monitoring stable levels.")
+                    "what_en": data.get("what_en", "Domestic infrastructure baseline capability verified."),
+                    "what_hi": data.get("what_hi", "Indian corporate tech parameters update complete."),
+                    "why_en": data.get("why_en", "Sector re-rating and operational valuation momentum check."),
+                    "why_hi": data.get("why_hi", "Margin expansion aur structural volume scaling ke liye yeh parameter critical hai."),
+                    "impact_en": data.get("impact_en", "Capex spending projections and retail stock trajectories stable."),
+                    "impact_hi": data.get("impact_hi", "Short-term swing trajectory aur technical breakout matrix par sharp positive indices visible hain.")
                 })
             api_success = True
-            print("✅ Gemini successfully generated unique analytical datasets!")
+            print("✅ Dynamic Indo-Global analytical datasets locked successfully!")
 
         except Exception as e:
             print(f"⚠️ Gemini API Layer Processing Failed: {e}")
             api_success = False
             
-    # 🛡️ BULLET-PROOF DEEP DYNAMIC FALLBACK SYSTEM (If API drops or data is empty)
+    # 🛡️ BULLET-PROOF DYNAMIC FALLBACK SYSTEM (If API drops or data is empty)
     if not api_success or not processed:
-        print("🔄 Executing 100% Dynamic Content Generation Logic on Fallback Level...")
+        print("🔄 Executing Dynamic Content Generation Logic on Fallback Level...")
         processed = []
         for idx, item in enumerate(raw_news):
             title = item.title
@@ -132,22 +147,22 @@ def generate_signals_dataset():
             assigned_cat = "Cloud & AI"
             if any(w in title.lower() for w in ["security", "cyber", "hack", "attack", "breach", "fund", "block"]): 
                 assigned_cat = "Cybersecurity"
-            elif any(w in title.lower() for w in ["deal", "peace", "iran", "us", "market", "billion", "trillion"]): 
+            elif any(w in title.lower() for w in ["deal", "peace", "market", "billion", "trillion", "nifty", "bse", "nse", "order"]): 
                 assigned_cat = "Financial Regulations"
                 
-            sentiment_val = "negative" if any(w in title.lower() for w in ["miss", "deadline", "storm", "kill", "shoot", "attack", "block"]) else "positive"
+            sentiment_val = "negative" if any(w in title.lower() for w in ["miss", "deadline", "storm", "attack", "block", "drop", "loss"]) else "positive"
             
             processed.append({
                 "id": f"fb-{idx}",
                 "title": title,
                 "category": assigned_cat,
                 "sentiment": sentiment_val,
-                "what_en": f"The development concerning '{short_title}' is triggering real-time infrastructural tracking. Monitoring updates confirm critical operational changes across global frameworks.",
-                "what_hi": f"Latest market signals ke mutabik '{short_title[:50]}' ka direct correlation industry parameters se trace kiya ja rha hai taaki tracking report perfect bne.",
-                "why_en": f"Understanding the underlying catalyst behind '{short_title[:40]}' is essential for risk mitigation, technical policy mapping, and overall strategic sector re-alignments.",
-                "why_hi": f"Yeh major breakout scenario '{short_title[:40]}' isliye matter karta h kyonki isse structural ecosystem updates aur monitoring systems par direct effect padta h.",
-                "impact_en": f"This dynamic shift directly alters capital allocation velocities, technical asset frameworks, and operational spending trajectory models inside the {assigned_cat} sector.",
-                "impact_hi": f"Is complete event analysis se long-term perspective par macro indices scale up honge aur overall tech spending matrices par fresh breakout momentum dikh sakta h."
+                "what_en": f"The development concerning '{short_title}' is triggering market infrastructure tracking. Monitoring updates confirm critical operational changes across frameworks.",
+                "what_hi": f"Latest market indicators ke mutabik '{short_title[:50]}' ka direct correlation structural parameters se trace kiya ja rha hai.",
+                "why_en": f"Understanding the catalyst behind '{short_title[:40]}' is essential for risk mitigation, policy mapping, and overall strategic sector re-alignments.",
+                "why_hi": f"Yeh scenario isliye matter karta h kyonki isse structural ecosystem tracking aur monitoring systems par direct breakout effect padta h.",
+                "impact_en": f"This dynamic shift alters capital allocation velocities, asset frameworks, and operational spending trajectory models inside the {assigned_cat} sector.",
+                "impact_hi": f"Is complete event analysis se long-term perspective par macro indices scale up honge aur overall sectoral spending matrices par momentum dikh sakta h."
             })
 
     CACHE_DATA = processed
@@ -176,9 +191,7 @@ def dispatch_dynamic_newsletters():
         email_addr = user.get("email")
         raw_sector = user.get("sector", "All")
         
-        # 🌟 1. LANGUAGE EXTRACTION BLOCK (Changes made here)
-        # Format "Cloud & AI [hi]" se category aur language language nikalenge
-        user_lang = "en"  # Default language English rahegi
+        user_lang = "en"
         clean_sector = raw_sector
         
         if "[" in raw_sector and "]" in raw_sector:
@@ -188,12 +201,10 @@ def dispatch_dynamic_newsletters():
                 user_lang = match.group(2).strip()
 
         try:
-            # Synced filter using the cleaned sector string
             user_signals = [s for s in all_signals if s["category"].lower() == clean_sector.lower()]
             if not user_signals or clean_sector == "All":
                 user_signals = all_signals
 
-            # Dynamic Subject mapping language wise
             subject_line = f"📊 Intelligence Stream Matrix: {clean_sector} Focus Report" if user_lang == "en" else f"📊 Market Intelligence Matrix Report: {clean_sector}"
 
             html_content = f"""
@@ -208,16 +219,13 @@ def dispatch_dynamic_newsletters():
             for item in user_signals:
                 color_tag = "#34d399" if item['sentiment'] == "positive" else "#f43f5e"
                 
-                # 🌟 2. EXCLUSIVE CONTENT CONDITIONAL SEPARATOR (Changes made here)
                 if user_lang == "hi":
-                    # Pure Single Hinglish Segment Content Block
                     body_block = f"""
                         <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #34d399; font-weight: bold;">[Kya Hua Hai]:</span> <span style="color: #a7f3d0;">{item['what_hi']}</span></div>
                         <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #fbbf24; font-weight: bold;">[Kyon Important Hai]:</span> <span style="color: #e2e8f0; font-style: italic;">{item['why_hi']}</span></div>
                         <div style="font-size: 13px;"><span style="color: #f43f5e; font-weight: bold;">[Market Par Impact]:</span> <span style="color: #fecdd3;">{item['impact_hi']}</span></div>
                     """
                 else:
-                    # Pure Single Corporate English Segment Content Block
                     body_block = f"""
                         <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #38bdf8; font-weight: bold;">[Core Analysis]:</span> <span style="color: #cbd5e1;">{item['what_en']}</span></div>
                         <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #fbbf24; font-weight: bold;">[Why It Matters]:</span> <span style="color: #e2e8f0; font-style: italic;">{item['why_en']}</span></div>
