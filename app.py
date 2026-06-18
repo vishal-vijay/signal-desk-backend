@@ -91,7 +91,7 @@ def generate_signals_dataset():
         "LAWS:\n"
         "1. Map categories strictly to: 'Cloud & AI', 'Cybersecurity', 'Smart Grid', 'Telecom', 'Transport & Logistics', 'Financial Regulations'.\n"
         "2. All '_hi' fields must be in clear HINGLISH using Latin script characters only (e.g., 'Is structural move se infrastructure capital flows robust honge'). No Devanagari script allowed.\n"
-        "3. Return ONLY the raw valid JSON array block. Do not wrap it in ```json blocks or include any extra text formatting."
+        "3. Return ONLY the raw valid JSON array block. Do not wrap it in markdown code blocks or include any extra text formatting."
     )
     
     processed = []
@@ -106,6 +106,180 @@ def generate_signals_dataset():
             )
             
             clean_text = response.text.strip()
-            if clean_text.startswith("```"):
-                clean_text = re.sub(r"^
-http://googleusercontent.com/immersive_entry_chip/0
+            
+            # 🌟 BREAKAGE REPAIR FIX: Standard text replacement functions methods instead of regex variables pattern splits
+            clean_text = clean_text.replace("```json", "").replace("```JSON", "").replace("```", "").strip()
+                
+            batch_data = json.loads(clean_text)
+            
+            for item in batch_data:
+                idx = int(item.get("index", 0))
+                if idx >= len(raw_news): continue
+                
+                processed.append({
+                    "id": f"sig-{idx}",
+                    "title": raw_news[idx].title,
+                    "category": item.get("category", "Cloud & AI"),
+                    "sentiment": item.get("sentiment", "positive"),
+                    "what_en": item.get("what_en", "Domestic enterprise infrastructure update verified."),
+                    "what_hi": item.get("what_hi", "Core technical framework status setup ready."),
+                    "why_en": item.get("why_en", "Operational efficiency scaling asset validation check."),
+                    "why_hi": item.get("why_hi", "Margin expand karne aur capability scale up karne ke liye zaroori hai."),
+                    "impact_en": item.get("impact_en", "Tech expenditure reallocation models stable."),
+                    "impact_hi": item.get("impact_hi", "Short-term momentum matrices par alpha expansion trend visible hai.")
+                })
+            
+            if processed:
+                api_success = True
+                print(f"✅ Production Analytics Processed successfully! Count: {len(processed)}")
+
+        except Exception as e:
+            print(f"⚠️ Gemini Direct Raw Aggregation Exception: {e}")
+            api_success = False
+            
+    if not api_success or not processed:
+        print("🔄 Running Premium Hardcoded Structural Ingestion Logic...")
+        processed = []
+        for idx, item in enumerate(raw_news):
+            title = item.title
+            short_title = title.split(" - ")[0].split(" | ")[0]
+            
+            cat = "Financial Regulations"
+            sentiment_val = "positive"
+            
+            if any(w in title.lower() for w in ["cyber", "security", "attack", "breach", "train", "oracle"]): 
+                cat = "Cybersecurity"
+            elif any(w in title.lower() for w in ["cloud", "ai", "microsoft", "aws", "azure", "github", "computing", "meesho"]): 
+                cat = "Cloud & AI"
+            elif any(w in title.lower() for w in ["nifty", "sensex", "share", "price", "dividend", "alphageo", "matrix", "turnaround"]): 
+                cat = "Smart Grid"
+                
+            if any(w in title.lower() for w in ["lawsuit", "negative", "drop", "loss", "shaky", "tension"]):
+                sentiment_val = "negative"
+            
+            processed.append({
+                "id": f"fb-{idx}",
+                "title": title,
+                "category": cat,
+                "sentiment": sentiment_val,
+                "what_en": f"Analysis of '{short_title}' highlights tactical structural movements and asset deployment parameters directly updating domestic corporate baselines.",
+                "what_hi": f"Is latest market track se '{short_title[:45]}' segment me immediate enterprise triggers aur corporate scaling optimization parameters visible ho rhe hain.",
+                "why_en": f"This tracking matrix is vital for core risk mitigation, capital budget capex optimization, and avoiding multi-cloud single-vendor dependency bottlenecks.",
+                "why_hi": f"Yeh factor isliye critical h kyonki yeh step short-term me executing capacities aur margin stability ko clear-cut push provide karega.",
+                "impact_en": f"Forward tracking models project immediate industry rating re-evaluations and dynamic technical capital reallocation velocities.",
+                "impact_hi": f"Retail portfolio risk mapping aur technical breakout trajectories par is macro framework integration ka dynamic up-move effect dikhega."
+            })
+
+    CACHE_DATA = processed
+    CACHE_TIME = current_time
+    return processed
+
+def dispatch_dynamic_newsletters():
+    print("🚀 Running newsletter core routine engine via GSheet Dataset...")
+    if not SENDGRID_KEY: 
+        print("⚠️ SendGrid API Key missing.")
+        return
+    try:
+        response = requests.get(GSHEET_SCRIPT_URL)
+        users = response.json()
+    except Exception as e:
+        print(f"❌ GSheet API Access Exception: {e}")
+        return
+
+    if not users: 
+        print("⚠️ No subscribers found inside the database.")
+        return
+
+    all_signals = generate_signals_dataset()
+    
+    for user in users:
+        email_addr = user.get("email")
+        raw_sector = user.get("sector", "All")
+        
+        user_lang = "en"
+        clean_sector = raw_sector
+        
+        if "[" in raw_sector and "]" in raw_sector:
+            match = re.search(r"(.+?)\s*\[(en|hi)\]", raw_sector)
+            if match:
+                clean_sector = match.group(1).strip()
+                user_lang = match.group(2).strip()
+
+        try:
+            user_signals = [s for s in all_signals if s["category"].lower() == clean_sector.lower()]
+            if not user_signals or clean_sector == "All":
+                user_signals = all_signals
+
+            subject_line = f"📊 Intelligence Stream Matrix: {clean_sector} Focus Report" if user_lang == "en" else f"📊 Market Intelligence Matrix Report: {clean_sector}"
+
+            html_content = f"""
+            <html>
+            <body style="font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background-color: #0f172a; color: #f8fafc; margin:0;">
+                <div style="max-width: 650px; margin: 20px auto; background: #1e293b; padding: 30px; border-radius: 14px; border: 1px solid #334155; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);">
+                    <div style="text-align: center; border-bottom: 2px solid #334155; padding-bottom: 20px; margin-bottom: 25px;">
+                        <h2 style="color: #34d399; margin: 0 0 8px 0; font-size: 24px; font-weight: 700;">SIGNAL DESK INSIGHTS</h2>
+                        <span style="background: #0f172a; padding: 6px 14px; border-radius: 20px; font-size: 11px; color: #34d399; font-weight: bold; border: 1px solid #10b981;">STREAM: {clean_sector.upper()} | LANG: {user_lang.upper()}</span>
+                    </div>
+            """
+            for item in user_signals:
+                color_tag = "#34d399" if item['sentiment'] == "positive" else "#f43f5e"
+                
+                if user_lang == "hi":
+                    body_block = f"""
+                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #34d399; font-weight: bold;">[Kya Hua Hai]:</span> <span style="color: #a7f3d0;">{item['what_hi']}</span></div>
+                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #fbbf24; font-weight: bold;">[Kyon Important Hai]:</span> <span style="color: #e2e8f0; font-style: italic;">{item['why_hi']}</span></div>
+                        <div style="font-size: 13px;"><span style="color: #f43f5e; font-weight: bold;">[Market Par Impact]:</span> <span style="color: #fecdd3;">{item['impact_hi']}</span></div>
+                    """
+                else:
+                    body_block = f"""
+                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #38bdf8; font-weight: bold;">[Core Analysis]:</span> <span style="color: #cbd5e1;">{item['what_en']}</span></div>
+                        <div style="margin-bottom: 8px; font-size: 13px;"><span style="color: #fbbf24; font-weight: bold;">[Why It Matters]:</span> <span style="color: #e2e8f0; font-style: italic;">{item['why_en']}</span></div>
+                        <div style="font-size: 13px;"><span style="color: #f43f5e; font-weight: bold;">[Market Impact]:</span> <span style="color: #fecdd3;">{item['impact_en']}</span></div>
+                    """
+
+                html_content += f"""
+                    <div style="margin-bottom: 25px; padding: 20px; background: #0f172a; border-left: 4px solid {color_tag}; border-radius: 8px;">
+                        <h4 style="margin: 0 0 12px 0; color: #ffffff; font-size: 16px;">{item['title']} <span style="color: {color_tag}; font-size: 11px; font-weight: bold; margin-left: 10px;">[{item['sentiment'].upper()}]</span></h4>
+                        {body_block}
+                    </div>
+                """
+            html_content += f"""
+                    <div style="text-align: center; margin-top: 35px; border-top: 1px solid #334155; padding-top: 25px;">
+                        <a href="{WEBSITE_URL}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 14px; display: inline-block;">🌐 Launch Live Dashboard</a>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            payload = {
+                "personalizations": [{"to": [{"email": email_addr, "name": "Subscriber"}]}],
+                "from": {"email": SENDER_EMAIL, "name": "Signal Desk Enterprise"},
+                "subject": subject_line,
+                "content": [{"type": "text/html", "value": html_content}]
+            }
+            headers = {"Authorization": f"Bearer {SENDGRID_KEY}", "Content-Type": "application/json"}
+            requests.post("[https://api.sendgrid.com/v3/mail/send](https://api.sendgrid.com/v3/mail/send)", json=payload, headers=headers)          
+        except Exception: 
+            pass
+
+@app.get("/api/signals")
+async def get_live_signals_for_ui():
+    return generate_signals_dataset()
+
+@app.post("/api/subscribe")
+async def register_subscriber(req: SubscriptionRequest):
+    try:
+        requests.post(GSHEET_SCRIPT_URL, json={"email": req.email, "sector": req.sector})
+        return {"status": "Success"}
+    except Exception as e: 
+        return {"status": "Error", "details": str(e)}
+
+@app.get("/api/trigger-email-test")
+async def trigger_email_test():
+    dispatch_dynamic_newsletters()
+    return {"status": "Execution Complete"}
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 10000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
